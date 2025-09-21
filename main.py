@@ -221,6 +221,37 @@ class ImageViewScreen(Screen):
         self.manager.current = "photo"
 
 
+# --------- Clickable Image Widget für Gallery ---------
+class ClickableImage(AsyncImage):
+    def __init__(self, image_path, gallery_screen, **kwargs):
+        super().__init__(**kwargs)
+        self.image_path = image_path
+        self.gallery_screen = gallery_screen
+        self.touch_start_pos = None
+
+    def on_touch_down(self, touch):
+        if self.collide_point(*touch.pos):
+            # Merke Position beim Touch-Start
+            self.touch_start_pos = touch.pos
+            return True
+        return super().on_touch_down(touch)
+
+    def on_touch_up(self, touch):
+        if self.collide_point(*touch.pos) and self.touch_start_pos:
+            # Prüfe ob Touch nicht zu weit bewegt wurde (= kein Scroll)
+            start_x, start_y = self.touch_start_pos
+            end_x, end_y = touch.pos
+            distance = ((end_x - start_x) ** 2 + (end_y - start_y) ** 2) ** 0.5
+            
+            # Wenn Bewegung kleiner als 20 Pixel = Klick, nicht Scroll
+            if distance < 20:
+                self.gallery_screen.open_image(self.image_path)
+            
+            self.touch_start_pos = None
+            return True
+        return super().on_touch_up(touch)
+
+
 # --------- Gallery Screen ---------
 class GalleryScreen(Screen):
     def __init__(self, **kwargs):
@@ -269,12 +300,15 @@ class GalleryScreen(Screen):
             for file in sorted(os.listdir(BILDER_DIR), reverse=True):
                 if file.lower().endswith((".png", ".jpg", ".jpeg")):
                     img_path = os.path.join(BILDER_DIR, file)
-                    thumb = AsyncImage(
+                    # Erstelle ein benutzerdefiniertes Image-Widget mit besserer Touch-Behandlung
+                    thumb = ClickableImage(
                         source=img_path,
-                        size_hint_y=None, height=200, allow_stretch=True
+                        size_hint_y=None, 
+                        height=200, 
+                        allow_stretch=True,
+                        image_path=img_path,
+                        gallery_screen=self
                     )
-                    # Verwende on_release statt on_touch_down für bessere Touch-Erkennung
-                    thumb.bind(on_release=lambda img, p=img_path: self.open_image(p))
                     self.grid.add_widget(thumb)
 
     def open_image(self, path):
