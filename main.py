@@ -181,22 +181,39 @@ class ImageViewScreen(Screen):
 
         self.current_path = None
         self.temp = False
+        self.from_gallery = False
 
-    def set_image(self, path, temp=False):
+    def set_image(self, path, temp=False, from_gallery=False):
         self.image_widget.source = path
         self.image_widget.reload()
         self.current_path = path
         self.temp = temp
+        self.from_gallery = from_gallery
+        
+        # Button-Text je nach Herkunft anpassen
+        if from_gallery:
+            # Aus Gallery: Zurück-Button statt Speichern
+            self.layout.children[1].text = "Zurück"  # btn_save
+            self.layout.children[0].text = "Löschen"  # btn_delete
+        else:
+            # Neues Foto: Speichern und Löschen
+            self.layout.children[1].text = "Speichern"  # btn_save
+            self.layout.children[0].text = "Löschen"   # btn_delete
 
     def save_photo(self, instance):
-        if self.temp and os.path.exists(self.current_path):
-            os.makedirs(BILDER_DIR, exist_ok=True)
-            filename = os.path.join(
-                BILDER_DIR,
-                time.strftime("photo_%Y%m%d_%H%M%S.jpg")
-            )
-            shutil.move(self.current_path, filename)
-        self.manager.current = "photo"
+        if self.from_gallery:
+            # Zurück zur Gallery
+            self.manager.current = "gallery"
+        else:
+            # Foto speichern (nur bei neuen Fotos)
+            if self.temp and os.path.exists(self.current_path):
+                os.makedirs(BILDER_DIR, exist_ok=True)
+                filename = os.path.join(
+                    BILDER_DIR,
+                    time.strftime("photo_%Y%m%d_%H%M%S.jpg")
+                )
+                shutil.move(self.current_path, filename)
+            self.manager.current = "photo"
 
     def delete_photo(self, instance):
         if os.path.exists(self.current_path):
@@ -263,7 +280,7 @@ class GalleryScreen(Screen):
     def open_image_if_clicked(self, img, touch, path):
         if img.collide_point(*touch.pos):
             image_view = self.manager.get_screen("imageview")
-            image_view.set_image(path, temp=False)
+            image_view.set_image(path, temp=False, from_gallery=True)
             self.manager.current = "imageview"
 
 
