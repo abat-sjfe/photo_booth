@@ -52,7 +52,7 @@ class PhotoBoothScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.layout = FloatLayout()
-        self.countdown_seconds = 3
+        self.countdown_seconds = 5
         self.countdown_remaining = 0
         self.countdown_event = None
 
@@ -66,7 +66,7 @@ class PhotoBoothScreen(Screen):
         self.layout.add_widget(self.countdown_label)
 
         self.btn_photo = Button(
-            text="📸 Foto",
+            text="Foto",
             font_size=32,
             size_hint=(0.25, 0.15),
             pos_hint={'x': 0.05, 'y': 0.05},
@@ -76,7 +76,7 @@ class PhotoBoothScreen(Screen):
         self.layout.add_widget(self.btn_photo)
 
         self.btn_gallery = Button(
-            text="🖼 Galerie",
+            text="Galerie",
             font_size=32,
             size_hint=(0.25, 0.15),
             pos_hint={'right': 0.95, 'y': 0.05},
