@@ -253,7 +253,12 @@ class ImageViewScreen(Screen):
     def delete_photo(self, instance):
         if os.path.exists(self.current_path):
             os.remove(self.current_path)
-        self.manager.current = "photo"
+        
+        # Zurück zur Herkunft: Gallery oder Kamera
+        if self.from_gallery:
+            self.manager.current = "gallery"
+        else:
+            self.manager.current = "photo"
 
 
 # --------- Clickable Image Widget für Gallery ---------
