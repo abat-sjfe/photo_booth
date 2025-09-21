@@ -6,29 +6,34 @@ from kivy.uix.image import Image
 from kivy.clock import Clock
 from kivy.core.window import Window
 from picamera2 import Picamera2
-import time
+import numpy as np
 import os
-import cv2
 
 TEMP_FILE = "temp.jpg"
 
 class CameraWidget(Image):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # Kamera einrichten
         self.picam2 = Picamera2()
         config = self.picam2.create_preview_configuration()
         self.picam2.configure(config)
         self.picam2.start()
-        Clock.schedule_interval(self.update, 1/30)  # 30 FPS
+        Clock.schedule_interval(self.update, 1/30)
 
     def update(self, dt):
         frame = self.picam2.capture_array()
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # BGR -> RGB
+        frame = frame[..., ::-1]
+
+        # ggf. drehen / spiegeln (falls Kamera auf dem Kopf ist)
+        # frame = np.flipud(frame)    # Vertikal
+        # frame = np.fliplr(frame)    # Horizontal
+
         buf = frame.tobytes()
+        from kivy.graphics.texture import Texture
         texture = self.texture
         if not texture or texture.width != frame.shape[1] or texture.height != frame.shape[0]:
-            from kivy.graphics.texture import Texture
             texture = Texture.create(size=(frame.shape[1], frame.shape[0]), colorfmt='rgb')
             texture.flip_vertical()
         texture.blit_buffer(buf, colorfmt='rgb', bufferfmt='ubyte')
@@ -37,18 +42,15 @@ class CameraWidget(Image):
     def capture(self):
         self.picam2.capture_file(TEMP_FILE)
 
-
 class PhotoBoothScreen(FloatLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        # Kamera-Vorschau im Hintergrund
         self.camera = CameraWidget(allow_stretch=True, keep_ratio=False)
         self.add_widget(self.camera)
 
-        # Capture-Button unten links
         btn_capture = Button(
-            text="Foto",
+            text="📸 Foto",
             font_size=32,
             size_hint=(0.25, 0.15),
             pos_hint={'x': 0.05, 'y': 0.05},
@@ -57,9 +59,8 @@ class PhotoBoothScreen(FloatLayout):
         btn_capture.bind(on_release=self.take_photo)
         self.add_widget(btn_capture)
 
-        # Galerie-Button unten rechts
         btn_gallery = Button(
-            text="Galerie",
+            text="🖼 Galerie",
             font_size=32,
             size_hint=(0.25, 0.15),
             pos_hint={'right': 0.95, 'y': 0.05},
@@ -81,7 +82,6 @@ class PhotoBoothApp(App):
         self.title = "Fotobox"
         Window.fullscreen = 'auto'
         return PhotoBoothScreen()
-
 
 if __name__ == '__main__':
     PhotoBoothApp().run()
