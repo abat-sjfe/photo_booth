@@ -20,9 +20,9 @@ class CameraWidget(Image):
         # Kamera initialisieren
         self.picam2 = Picamera2()
         
-        # Preview-Konfiguration mit 1024x600 Auflösung
+        # Preview-Konfiguration mit 1024x576 Auflösung
         preview_config = self.picam2.create_preview_configuration(
-            main={"format": "RGB888", "size": (1024, 768)}
+            main={"format": "RGB888", "size": (1024, 576)}
         )
         self.picam2.configure(preview_config)
         
