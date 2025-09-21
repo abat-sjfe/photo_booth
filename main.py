@@ -273,15 +273,15 @@ class GalleryScreen(Screen):
                         source=img_path,
                         size_hint_y=None, height=200, allow_stretch=True
                     )
-                    thumb.bind(on_touch_down=lambda img, touch, p=img_path:
-                               self.open_image_if_clicked(img, touch, p))
+                    # Verwende on_release statt on_touch_down für bessere Touch-Erkennung
+                    thumb.bind(on_release=lambda img, p=img_path: self.open_image(p))
                     self.grid.add_widget(thumb)
 
-    def open_image_if_clicked(self, img, touch, path):
-        if img.collide_point(*touch.pos):
-            image_view = self.manager.get_screen("imageview")
-            image_view.set_image(path, temp=False, from_gallery=True)
-            self.manager.current = "imageview"
+    def open_image(self, path):
+        """Öffnet ein Bild - wird nur bei tatsächlichen Klicks aufgerufen"""
+        image_view = self.manager.get_screen("imageview")
+        image_view.set_image(path, temp=False, from_gallery=True)
+        self.manager.current = "imageview"
 
 
 # --------- App ---------
