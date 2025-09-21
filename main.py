@@ -298,36 +298,34 @@ class ImageViewScreen(Screen):
             self.manager.current = "photo"
 
     def on_touch_down(self, touch):
-        # Erst prüfen ob ein Button getroffen wurde
-        for child in self.layout.children:
-            if child.collide_point(*touch.pos):
-                # Button wurde getroffen - lass das System das normal behandeln
-                print(f"Touch auf Button erkannt: {getattr(child, 'text', 'Unbekannt')}")
-                return super().on_touch_down(touch)
+        # Prüfe nur die spezifischen Buttons (nicht alle Widgets)
+        if (self.btn_save.collide_point(*touch.pos) or 
+            self.btn_delete.collide_point(*touch.pos)):
+            print(f"Touch auf Button erkannt")
+            return super().on_touch_down(touch)
         
-        # Nur Swipe-Handling wenn kein Button getroffen wurde
-        if self.from_gallery and self.gallery_images and self.image_widget.collide_point(*touch.pos):
+        # Swipe-Handling für Gallery-Modus
+        if self.from_gallery and self.gallery_images:
             self.touch_start_x = touch.x
-            print("Swipe-Start erkannt auf Bild")
+            print(f"Swipe-Start erkannt bei x={touch.x}")
             return True
+        
         return super().on_touch_down(touch)
 
     def on_touch_up(self, touch):
-        # Erst prüfen ob ein Button getroffen wurde
-        for child in self.layout.children:
-            if child.collide_point(*touch.pos):
-                # Button wurde getroffen - lass das System das normal behandeln
-                print(f"Touch-Release auf Button: {getattr(child, 'text', 'Unbekannt')}")
-                return super().on_touch_up(touch)
+        # Prüfe nur die spezifischen Buttons (nicht alle Widgets)
+        if (self.btn_save.collide_point(*touch.pos) or 
+            self.btn_delete.collide_point(*touch.pos)):
+            print(f"Touch-Release auf Button")
+            return super().on_touch_up(touch)
         
-        # Nur Swipe-Handling wenn kein Button getroffen wurde
+        # Swipe-Handling für Gallery-Modus
         if (self.from_gallery and self.gallery_images and 
-            self.touch_start_x is not None and 
-            self.image_widget.collide_point(*touch.pos)):
+            self.touch_start_x is not None):
             
             # Berechne Swipe-Distanz
             swipe_distance = touch.x - self.touch_start_x
-            print(f"Swipe-Distanz: {swipe_distance}")
+            print(f"Swipe-Distanz: {swipe_distance} (Start: {self.touch_start_x}, Ende: {touch.x})")
             
             if abs(swipe_distance) > self.min_swipe_distance:
                 if swipe_distance > 0:
@@ -338,9 +336,12 @@ class ImageViewScreen(Screen):
                     # Swipe nach links = nächstes Bild
                     print("Swipe links - nächstes Bild")
                     self.show_next_image()
+            else:
+                print(f"Swipe zu kurz: {abs(swipe_distance)} < {self.min_swipe_distance}")
             
             self.touch_start_x = None
             return True
+        
         return super().on_touch_up(touch)
 
     def show_next_image(self):
