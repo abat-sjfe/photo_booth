@@ -200,7 +200,10 @@ class ImageViewScreen(Screen):
             background_color=(0, 0, 0, 0.5)
         )
         self.btn_save.bind(on_release=self.save_photo)
+        # Test-Event zusätzlich binden
+        self.btn_save.bind(on_press=lambda x: print("Speichern/Zurück-Button gedrückt"))
         self.layout.add_widget(self.btn_save)
+        print("Speichern/Zurück-Button erstellt und gebunden")
 
         self.btn_delete = RoundedButton(
             text="Löschen",
@@ -210,7 +213,10 @@ class ImageViewScreen(Screen):
             background_color=(0, 0, 0, 0.5)
         )
         self.btn_delete.bind(on_release=self.delete_photo)
+        # Test-Event zusätzlich binden
+        self.btn_delete.bind(on_press=lambda x: print("Löschen-Button gedrückt"))
         self.layout.add_widget(self.btn_delete)
+        print("Löschen-Button erstellt und gebunden")
 
         self.add_widget(self.layout)
 
@@ -275,13 +281,20 @@ class ImageViewScreen(Screen):
             self.manager.current = "photo"
 
     def delete_photo(self, instance):
+        print(f"delete_photo aufgerufen - from_gallery: {self.from_gallery}, Pfad: {self.current_path}")
+        
         if os.path.exists(self.current_path):
             os.remove(self.current_path)
+            print(f"Datei gelöscht: {self.current_path}")
+        else:
+            print(f"Datei existiert nicht: {self.current_path}")
         
         # Zurück zur Herkunft: Gallery oder Kamera
         if self.from_gallery:
+            print("Gehe zurück zur Gallery nach Löschen")
             self.manager.current = "gallery"
         else:
+            print("Gehe zurück zur Kamera nach Löschen")
             self.manager.current = "photo"
 
     def on_touch_down(self, touch):
