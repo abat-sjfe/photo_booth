@@ -15,20 +15,20 @@ class CameraWidget(Image):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.picam2 = Picamera2()
-        config = self.picam2.create_preview_configuration()
+        
+        # Vorschau-Konfiguration in RGB888 anfordern
+        config = self.picam2.create_preview_configuration(main={"format": 'RGB888', "size": (1280, 720)})
         self.picam2.configure(config)
+        
+        # Automatischen Weißabgleich einschalten
+        controls = {"AwbEnable": True, "AwbMode": 0}  # 0 = Auto
+        self.picam2.set_controls(controls)
+        
         self.picam2.start()
         Clock.schedule_interval(self.update, 1/30)
 
     def update(self, dt):
-        frame = self.picam2.capture_array()
-
-        # BGR -> RGB
-        frame = frame[..., ::-1]
-
-        # ggf. drehen / spiegeln (falls Kamera auf dem Kopf ist)
-        # frame = np.flipud(frame)    # Vertikal
-        # frame = np.fliplr(frame)    # Horizontal
+        frame = self.picam2.capture_array()  # Jetzt ist es schon RGB888
 
         buf = frame.tobytes()
         from kivy.graphics.texture import Texture
