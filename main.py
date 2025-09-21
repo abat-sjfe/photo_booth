@@ -110,8 +110,7 @@ class PhotoBoothScreen(Screen):
             self.take_photo()
 
     def take_photo(self):
-        if not os.path.exists(BILDER_DIR):
-            os.makedirs(BILDER_DIR)
+        # Foto nur in TEMP_FILE speichern
         self.camera.capture(TEMP_FILE)
         image_view = self.manager.get_screen("imageview")
         image_view.set_image(TEMP_FILE, temp=True)
@@ -162,7 +161,10 @@ class ImageViewScreen(Screen):
     def save_photo(self, instance):
         if self.temp and os.path.exists(self.current_path):
             os.makedirs(BILDER_DIR, exist_ok=True)
-            filename = os.path.join(BILDER_DIR, os.path.basename(self.current_path))
+            filename = os.path.join(
+                BILDER_DIR,
+                time.strftime("photo_%Y%m%d_%H%M%S.jpg")
+            )
             shutil.move(self.current_path, filename)
         self.manager.current = "photo"
 
