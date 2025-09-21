@@ -99,7 +99,7 @@ class PhotoBoothScreen(Screen):
             text="Foto",
             font_size=32,
             size_hint=(0.25, 0.15),
-            pos_hint={'x': 0.05, 'y': 0.05},
+            pos_hint={'right': 0.95, 'y': 0.05},
             background_color=(0, 0, 0, 0.5)
         )
         self.btn_photo.bind(on_release=self.start_countdown)
@@ -109,7 +109,7 @@ class PhotoBoothScreen(Screen):
             text="Galerie",
             font_size=32,
             size_hint=(0.25, 0.15),
-            pos_hint={'right': 0.95, 'y': 0.05},
+            pos_hint={'x': 0.05, 'top': 0.95},
             background_color=(0, 0, 0, 0.5)
         )
         self.btn_gallery.bind(on_release=self.go_to_gallery)
