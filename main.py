@@ -119,6 +119,15 @@ class ImageViewScreen(Screen):
         btn_delete.bind(on_release=self.delete_photo)
         self.layout.add_widget(btn_delete)
 
+        btn_back = Button(
+            text="Zurück",
+            font_size=28,
+            size_hint=(0.2, 0.1),
+            pos_hint={'x': 0.02, 'top': 0.98},
+            background_color=(0, 0, 0, 0.5)
+        )
+        btn_back.bind(on_release=lambda x: setattr(self.manager, "current", "photo"))
+
         self.add_widget(self.layout)
 
         self.current_path = None
