@@ -77,8 +77,11 @@ class PhotoBoothScreen(FloatLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        # Kamera-Preview im Hintergrund
-        self.camera = CameraWidget(allow_stretch=True, keep_ratio=False)
+        # Kamera-Preview im Hintergrund - ohne Stretching
+        self.camera = CameraWidget(
+            allow_stretch=True, 
+            keep_ratio=True  # Seitenverhältnis beibehalten - kein Stretching
+        )
         self.add_widget(self.camera)
 
         # Foto-Button unten links
