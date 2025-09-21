@@ -15,25 +15,28 @@ class CameraWidget(Image):
         super().__init__(**kwargs)
         self.picam2 = Picamera2()
 
-        # Vorschau-Konfiguration mit RGB888 -> richtige Farben
+        # Vorschau als RGB888 für korrekte Farben
         config = self.picam2.create_preview_configuration(
             main={"format": 'RGB888', "size": (1280, 720)}
         )
         self.picam2.configure(config)
 
-        # Auto White Balance auf "Auto" setzen (0)
+        # Weißabgleich auf automatisch setzen
         try:
-            self.picam2.set_controls({"AwbMode": 0})
-        except Exception as e:
-            print("AWB Control nicht verfügbar:", e)
+            self.picam2.set_controls({"AwbMode": 0})  # 0 = Auto
+        except Exception:
+            pass  # falls AWB-Mode nicht verfügbar ist
 
         self.picam2.start()
 
-        # Update-Loop starten (30 FPS)
+        # 30 FPS Update-Loop für Livebild
         Clock.schedule_interval(self.update, 1/30)
 
     def update(self, dt):
-        frame = self.picam2.capture_array()  # schon im RGB-Format
+        # Live-Bild abrufen
+        frame = self.picam2.capture_array()
+
+        # Kivy-Texture erstellen und Buffer blitten
         buf = frame.tobytes()
         from kivy.graphics.texture import Texture
         texture = self.texture
@@ -51,7 +54,7 @@ class PhotoBoothScreen(FloatLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        # Kamera-Vorschau im Hintergrund
+        # Kamera im Hintergrund (voll gestreckt)
         self.camera = CameraWidget(allow_stretch=True, keep_ratio=False)
         self.add_widget(self.camera)
 
@@ -68,7 +71,7 @@ class PhotoBoothScreen(FloatLayout):
 
         # Galerie-Button unten rechts
         btn_gallery = Button(
-            text="🖼 Galerie",
+            text=" Galerie",
             font_size=32,
             size_hint=(0.25, 0.15),
             pos_hint={'x': 0.05, 'top': 0.95},
