@@ -51,44 +51,70 @@ class CameraWidget(Image):
 class PhotoBoothScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        layout = FloatLayout()
+        self.layout = FloatLayout()
+        self.countdown_seconds = 3
+        self.countdown_remaining = 0
+        self.countdown_event = None
 
         self.camera = CameraWidget(allow_stretch=True, keep_ratio=False)
-        layout.add_widget(self.camera)
+        self.layout.add_widget(self.camera)
 
-        btn_photo = Button(
+        # Countdown Label
+        self.countdown_label = Label(text='', font_size=150,
+                                     color=(1, 1, 1, 1),
+                                     pos_hint={'center_x': 0.5, 'center_y': 0.5})
+        self.layout.add_widget(self.countdown_label)
+
+        self.btn_photo = Button(
             text="📸 Foto",
             font_size=32,
             size_hint=(0.25, 0.15),
             pos_hint={'x': 0.05, 'y': 0.05},
             background_color=(0, 0, 0, 0.5)
         )
-        btn_photo.bind(on_release=self.take_photo)
-        layout.add_widget(btn_photo)
+        self.btn_photo.bind(on_release=self.start_countdown)
+        self.layout.add_widget(self.btn_photo)
 
-        btn_gallery = Button(
+        self.btn_gallery = Button(
             text="🖼 Galerie",
             font_size=32,
             size_hint=(0.25, 0.15),
             pos_hint={'right': 0.95, 'y': 0.05},
             background_color=(0, 0, 0, 0.5)
         )
-        btn_gallery.bind(on_release=self.switch_to_gallery)
-        layout.add_widget(btn_gallery)
+        self.btn_gallery.bind(on_release=lambda x: self.manager.current = "gallery")
+        self.layout.add_widget(self.btn_gallery)
 
-        self.add_widget(layout)
+        self.add_widget(self.layout)
 
-    def switch_to_gallery(self, instance):
-        self.manager.current = "gallery"
+    def start_countdown(self, instance):
+        if self.countdown_event:
+            return  # Countdown läuft schon
+        self.countdown_remaining = self.countdown_seconds
+        self.countdown_label.text = str(self.countdown_remaining)
+        self.btn_photo.disabled = True
+        self.btn_gallery.disabled = True
+        self.countdown_event = Clock.schedule_interval(self._countdown_step, 1)
 
-    def take_photo(self, instance):
+    def _countdown_step(self, dt):
+        self.countdown_remaining -= 1
+        if self.countdown_remaining > 0:
+            self.countdown_label.text = str(self.countdown_remaining)
+        else:
+            Clock.unschedule(self.countdown_event)
+            self.countdown_event = None
+            self.countdown_label.text = ''
+            self.take_photo()
+
+    def take_photo(self):
         if not os.path.exists(BILDER_DIR):
             os.makedirs(BILDER_DIR)
         self.camera.capture(TEMP_FILE)
-        # zum Bildanzeige-Screen wechseln
         image_view = self.manager.get_screen("imageview")
         image_view.set_image(TEMP_FILE, temp=True)
         self.manager.current = "imageview"
+        self.btn_photo.disabled = False
+        self.btn_gallery.disabled = False
 
 
 # --------- ImageView Screen ---------
@@ -118,15 +144,6 @@ class ImageViewScreen(Screen):
         )
         btn_delete.bind(on_release=self.delete_photo)
         self.layout.add_widget(btn_delete)
-
-        btn_back = Button(
-            text="Zurück",
-            font_size=28,
-            size_hint=(0.2, 0.1),
-            pos_hint={'x': 0.02, 'top': 0.98},
-            background_color=(0, 0, 0, 0.5)
-        )
-        btn_back.bind(on_release=lambda x: setattr(self.manager, "current", "photo"))
 
         self.add_widget(self.layout)
 
@@ -170,11 +187,10 @@ class GalleryScreen(Screen):
             pos_hint={'x': 0.02, 'top': 0.98},
             background_color=(0, 0, 0, 0.5)
         )
-        btn_back.bind(on_release=lambda x: setattr(self.manager, "current", "photo"))
+        btn_back.bind(on_release=lambda x: self.manager.current = "photo")
 
         layout.add_widget(scroll)
         layout.add_widget(btn_back)
-
         self.add_widget(layout)
 
     def on_pre_enter(self, *args):
