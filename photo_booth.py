@@ -60,7 +60,7 @@ class PhotoBoothScreen(FloatLayout):
             text="📸 Foto",
             font_size=32,
             size_hint=(0.25, 0.15),
-            pos_hint={'x': 0.05, 'y': 0.05},
+            pos_hint={'right': 0.95, 'y': 0.05},
             background_color=(0, 0, 0, 0.5)
         )
         btn_capture.bind(on_release=self.take_photo)
@@ -71,7 +71,7 @@ class PhotoBoothScreen(FloatLayout):
             text="🖼 Galerie",
             font_size=32,
             size_hint=(0.25, 0.15),
-            pos_hint={'right': 0.95, 'y': 0.05},
+            pos_hint={'x': 0.05, 'top': 0.95},
             background_color=(0, 0, 0, 0.5)
         )
         btn_gallery.bind(on_release=self.open_gallery)
