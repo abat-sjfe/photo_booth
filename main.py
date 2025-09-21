@@ -20,28 +20,58 @@ TEMP_FILE = os.path.join(SCRIPT_DIR, "temp.jpg")
 class CameraWidget(Image):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        
+        print("Initialisiere Kamera...")
         self.picam2 = Picamera2()
-        config = self.picam2.create_preview_configuration(
+        
+        # Preview-Konfiguration
+        preview_config = self.picam2.create_preview_configuration(
             main={"format": "RGB888", "size": (640, 480)}
         )
-        self.picam2.configure(config)
+        self.picam2.configure(preview_config)
+        
+        # Kamera-Einstellungen
         try:
-            self.picam2.set_controls({"AwbMode": 0})
-        except Exception:
-            pass
+            self.picam2.set_controls({"AwbMode": 0})  # Auto White Balance
+        except Exception as e:
+            print(f"AWB Einstellung fehlgeschlagen: {e}")
+        
+        # Kamera starten
         self.picam2.start()
-        Clock.schedule_interval(self.update, 1/30)
+        
+        # Kurz warten bis Kamera bereit ist
+        time.sleep(0.1)
+        
+        # Live-Feed starten - robuster Event-Handler
+        self.update_event = Clock.schedule_interval(self.update, 1/25.0)  # 25 FPS
+        
+        print("Kamera Live-Feed gestartet")
 
     def update(self, dt):
-        frame = self.picam2.capture_array()
-        buf = frame.tobytes()
-        from kivy.graphics.texture import Texture
-        texture = self.texture
-        if not texture or texture.width != frame.shape[1] or texture.height != frame.shape[0]:
-            texture = Texture.create(size=(frame.shape[1], frame.shape[0]), colorfmt='rgb')
-            texture.flip_vertical()
-        texture.blit_buffer(buf, colorfmt='rgb', bufferfmt='ubyte')
-        self.texture = texture
+        try:
+            # Aktuelles Frame von der Kamera holen
+            frame = self.picam2.capture_array()
+            
+            # Frame in Bytes umwandeln
+            buf = frame.tobytes()
+            
+            # Texture erstellen oder wiederverwenden
+            from kivy.graphics.texture import Texture
+            h, w = frame.shape[:2]
+            
+            # Neue Texture erstellen falls nötig
+            if not self.texture or self.texture.width != w or self.texture.height != h:
+                self.texture = Texture.create(size=(w, h), colorfmt='rgb')
+                self.texture.flip_vertical()
+            
+            # Frame in Texture laden und sofort anzeigen
+            self.texture.blit_buffer(buf, colorfmt='rgb', bufferfmt='ubyte')
+            
+            # Explizit das Widget zum Neuzeichnen zwingen
+            self.canvas.ask_update()
+            
+        except Exception as e:
+            print(f"Kamera Update Fehler: {e}")
 
     def capture(self, path):
         self.picam2.capture_file(path)
