@@ -22,7 +22,7 @@ class CameraWidget(Image):
         
         # Preview-Konfiguration mit 1024x576 Auflösung
         preview_config = self.picam2.create_preview_configuration(
-            main={"format": "RGB888", "size": (1024, 576)}
+            main={"format": "RGB888", "size": (1024, 600)}
         )
         self.picam2.configure(preview_config)
         
