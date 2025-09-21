@@ -82,10 +82,13 @@ class PhotoBoothScreen(Screen):
             pos_hint={'right': 0.95, 'y': 0.05},
             background_color=(0, 0, 0, 0.5)
         )
-        self.btn_gallery.bind(on_release=lambda x: self.manager.current = "gallery")
+        self.btn_gallery.bind(on_release=self.go_to_gallery)
         self.layout.add_widget(self.btn_gallery)
 
         self.add_widget(self.layout)
+
+    def go_to_gallery(self, *args):
+        self.manager.current = "gallery"
 
     def start_countdown(self, instance):
         if self.countdown_event:
@@ -187,11 +190,14 @@ class GalleryScreen(Screen):
             pos_hint={'x': 0.02, 'top': 0.98},
             background_color=(0, 0, 0, 0.5)
         )
-        btn_back.bind(on_release=lambda x: self.manager.current = "photo")
+        btn_back.bind(on_release=self.go_back)
 
         layout.add_widget(scroll)
         layout.add_widget(btn_back)
         self.add_widget(layout)
+
+    def go_back(self, *args):
+        self.manager.current = "photo"
 
     def on_pre_enter(self, *args):
         self.load_images()
