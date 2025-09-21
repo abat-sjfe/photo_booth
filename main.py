@@ -298,25 +298,45 @@ class ImageViewScreen(Screen):
             self.manager.current = "photo"
 
     def on_touch_down(self, touch):
+        # Erst prüfen ob ein Button getroffen wurde
+        for child in self.layout.children:
+            if child.collide_point(*touch.pos):
+                # Button wurde getroffen - lass das System das normal behandeln
+                print(f"Touch auf Button erkannt: {getattr(child, 'text', 'Unbekannt')}")
+                return super().on_touch_down(touch)
+        
+        # Nur Swipe-Handling wenn kein Button getroffen wurde
         if self.from_gallery and self.gallery_images and self.image_widget.collide_point(*touch.pos):
             self.touch_start_x = touch.x
+            print("Swipe-Start erkannt auf Bild")
             return True
         return super().on_touch_down(touch)
 
     def on_touch_up(self, touch):
+        # Erst prüfen ob ein Button getroffen wurde
+        for child in self.layout.children:
+            if child.collide_point(*touch.pos):
+                # Button wurde getroffen - lass das System das normal behandeln
+                print(f"Touch-Release auf Button: {getattr(child, 'text', 'Unbekannt')}")
+                return super().on_touch_up(touch)
+        
+        # Nur Swipe-Handling wenn kein Button getroffen wurde
         if (self.from_gallery and self.gallery_images and 
             self.touch_start_x is not None and 
             self.image_widget.collide_point(*touch.pos)):
             
             # Berechne Swipe-Distanz
             swipe_distance = touch.x - self.touch_start_x
+            print(f"Swipe-Distanz: {swipe_distance}")
             
             if abs(swipe_distance) > self.min_swipe_distance:
                 if swipe_distance > 0:
                     # Swipe nach rechts = vorheriges Bild
+                    print("Swipe rechts - vorheriges Bild")
                     self.show_previous_image()
                 else:
                     # Swipe nach links = nächstes Bild
+                    print("Swipe links - nächstes Bild")
                     self.show_next_image()
             
             self.touch_start_x = None
