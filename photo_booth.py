@@ -5,38 +5,31 @@ from kivy.uix.button import Button
 from kivy.uix.image import Image
 from kivy.clock import Clock
 from kivy.core.window import Window
-from kivy.graphics import Color, Rectangle
 from picamera2 import Picamera2
+import time
 import os
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+BILDER_DIR = os.path.join(SCRIPT_DIR, "bilder")
 TEMP_FILE = "temp.jpg"
 
 class CameraWidget(Image):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.picam2 = Picamera2()
-
-        # Vorschau als RGB888 für korrekte Farben
         config = self.picam2.create_preview_configuration(
-            main={"format": 'RGB888', "size": (1280, 720)}
+            main={"format": "RGB888", "size": (640, 480)}
         )
         self.picam2.configure(config)
-
-        # Weißabgleich Auto
         try:
-            self.picam2.set_controls({"AwbMode": 0})  # Auto White Balance
+            self.picam2.set_controls({"AwbMode": 0})  # Auto-WB
         except Exception:
             pass
-
         self.picam2.start()
-
-        # Jede 1/30 Sekunde Vorschau aktualisieren
         Clock.schedule_interval(self.update, 1/30)
 
     def update(self, dt):
-        # Direktes Livebild abrufen
-        frame = self.picam2.capture_array()  # NumPy-Array (RGB888)
-
+        frame = self.picam2.capture_array()
         buf = frame.tobytes()
         from kivy.graphics.texture import Texture
         texture = self.texture
@@ -53,20 +46,9 @@ class CameraWidget(Image):
 class PhotoBoothScreen(FloatLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        
-        # Fester Hintergrund
-        with self.canvas.before:
-            Color(0.1, 0.1, 0.2, 1)  # Dunkelblauer Hintergrund
-            self.bg_rect = Rectangle(size=self.size, pos=self.pos)
-            self.bind(size=self._update_bg, pos=self._update_bg)
 
-        # Kamera-Preview in der Mitte (kleiner Bereich)
-        self.camera = CameraWidget(
-            allow_stretch=True, 
-            keep_ratio=True,
-            size_hint=(0.6, 0.7),  # 60% Breite, 70% Höhe
-            pos_hint={'center_x': 0.5, 'center_y': 0.55}  # Zentriert, etwas nach oben
-        )
+        # Kamera-Preview im Hintergrund
+        self.camera = CameraWidget(allow_stretch=True, keep_ratio=False)
         self.add_widget(self.camera)
 
         # Foto-Button unten links
@@ -91,12 +73,10 @@ class PhotoBoothScreen(FloatLayout):
         btn_gallery.bind(on_release=self.open_gallery)
         self.add_widget(btn_gallery)
 
-    def _update_bg(self, instance, value):
-        """Hintergrund an Fenstergröße anpassen"""
-        self.bg_rect.pos = instance.pos
-        self.bg_rect.size = instance.size
-
     def take_photo(self, instance):
+        # Foto aufnehmen und temp speichern
+        if not os.path.exists(BILDER_DIR):
+            os.makedirs(BILDER_DIR)
         self.camera.capture()
         os.system(f"python3 image_view.py {TEMP_FILE}")
 
