@@ -16,6 +16,33 @@ BILDER_DIR = os.path.join(SCRIPT_DIR, "bilder")
 TEMP_FILE = os.path.join(SCRIPT_DIR, "temp.jpg")
 
 
+# --------- Abgerundeter Button ---------
+class RoundedButton(Button):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Entferne Standard-Button-Hintergrund
+        self.background_normal = ''
+        self.background_down = ''
+        
+        # Erstelle abgerundeten Hintergrund
+        with self.canvas.before:
+            from kivy.graphics import Color, RoundedRectangle
+            Color(*self.background_color[:3], self.background_color[3])  # RGBA
+            self.bg_rect = RoundedRectangle(
+                size=self.size, 
+                pos=self.pos, 
+                radius=[15, 15, 15, 15]  # Radius für alle 4 Ecken
+            )
+            
+        # Aktualisiere Größe und Position bei Änderungen
+        self.bind(size=self._update_bg, pos=self._update_bg)
+    
+    def _update_bg(self, instance, value):
+        """Hintergrund an Button-Größe anpassen"""
+        self.bg_rect.pos = instance.pos
+        self.bg_rect.size = instance.size
+
+
 # --------- Kamera Widget ---------
 class CameraWidget(Image):
     def __init__(self, **kwargs):
@@ -95,7 +122,7 @@ class PhotoBoothScreen(Screen):
                                      pos_hint={'center_x': 0.5, 'center_y': 0.5})
         self.layout.add_widget(self.countdown_label)
 
-        self.btn_photo = Button(
+        self.btn_photo = RoundedButton(
             text="Foto",
             font_size=32,
             size_hint=(0.25, 0.15),
@@ -105,7 +132,7 @@ class PhotoBoothScreen(Screen):
         self.btn_photo.bind(on_release=self.start_countdown)
         self.layout.add_widget(self.btn_photo)
 
-        self.btn_gallery = Button(
+        self.btn_gallery = RoundedButton(
             text="Galerie",
             font_size=32,
             size_hint=(0.25, 0.15),
@@ -157,7 +184,7 @@ class ImageViewScreen(Screen):
         self.image_widget = Image(allow_stretch=True, keep_ratio=False)
         self.layout.add_widget(self.image_widget)
 
-        btn_save = Button(
+        btn_save = RoundedButton(
             text="Speichern",
             font_size=32,
             size_hint=(0.3, 0.15),
@@ -167,7 +194,7 @@ class ImageViewScreen(Screen):
         btn_save.bind(on_release=self.save_photo)
         self.layout.add_widget(btn_save)
 
-        btn_delete = Button(
+        btn_delete = RoundedButton(
             text="Löschen",
             font_size=32,
             size_hint=(0.3, 0.15),
@@ -270,7 +297,7 @@ class GalleryScreen(Screen):
         self.grid.bind(minimum_height=self.grid.setter('height'))
         scroll.add_widget(self.grid)
 
-        btn_back = Button(
+        btn_back = RoundedButton(
             text="Zurück",
             font_size=28,
             size_hint=(0.2, 0.1),
