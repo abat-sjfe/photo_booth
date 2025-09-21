@@ -1,28 +1,45 @@
 # image_view.py
-import sys, os, shutil
+import sys
+import os
+import shutil
 from kivy.app import App
 from kivy.uix.image import Image
-from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.button import Button
 from kivy.core.window import Window
 
 PICTURES_DIR = "pictures"
 
-class ImageView(BoxLayout):
+class ImageView(FloatLayout):
     def __init__(self, img_path, **kwargs):
-        super().__init__(orientation='vertical', **kwargs)
+        super().__init__(**kwargs)
         self.img_path = img_path
-        self.image = Image(source=img_path, allow_stretch=True, keep_ratio=True)
+
+        # Bild als Vollhintergrund
+        self.image = Image(source=img_path, allow_stretch=True, keep_ratio=False)
         self.add_widget(self.image)
 
-        btn_box = BoxLayout(size_hint_y=0.2)
-        btn_save = Button(text="💾 Speichern", font_size=32)
-        btn_delete = Button(text="🗑 Löschen", font_size=32)
+        # Speichern-Button unten links
+        btn_save = Button(
+            text="💾 Speichern",
+            font_size=32,
+            size_hint=(0.3, 0.15),
+            pos_hint={'x': 0.05, 'y': 0.05},
+            background_color=(0, 0, 0, 0.5)
+        )
         btn_save.bind(on_release=self.save_photo)
+        self.add_widget(btn_save)
+
+        # Löschen-Button unten rechts
+        btn_delete = Button(
+            text="🗑 Löschen",
+            font_size=32,
+            size_hint=(0.3, 0.15),
+            pos_hint={'right': 0.95, 'y': 0.05},
+            background_color=(0, 0, 0, 0.5)
+        )
         btn_delete.bind(on_release=self.delete_photo)
-        btn_box.add_widget(btn_save)
-        btn_box.add_widget(btn_delete)
-        self.add_widget(btn_box)
+        self.add_widget(btn_delete)
 
     def save_photo(self, instance):
         os.makedirs(PICTURES_DIR, exist_ok=True)
@@ -31,8 +48,10 @@ class ImageView(BoxLayout):
         App.get_running_app().stop()
 
     def delete_photo(self, instance):
-        os.remove(self.img_path)
+        if os.path.exists(self.img_path):
+            os.remove(self.img_path)
         App.get_running_app().stop()
+
 
 class ImageViewApp(App):
     def __init__(self, img_path, **kwargs):
@@ -42,6 +61,7 @@ class ImageViewApp(App):
     def build(self):
         Window.fullscreen = 'auto'
         return ImageView(self.img_path)
+
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
