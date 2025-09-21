@@ -19,19 +19,27 @@ TEMP_FILE = os.path.join(SCRIPT_DIR, "temp.jpg")
 # --------- Abgerundeter Button ---------
 class RoundedButton(Button):
     def __init__(self, **kwargs):
+        # Speichere die gewünschte Hintergrundfarbe
+        self.custom_bg_color = kwargs.get('background_color', (0, 0, 0, 0.5))
+        
+        # Setze transparenten Standard-Hintergrund
+        kwargs['background_color'] = (0, 0, 0, 0)  # Komplett transparent
+        
         super().__init__(**kwargs)
-        # Entferne Standard-Button-Hintergrund
+        
+        # Entferne Standard-Button-Hintergrund komplett
         self.background_normal = ''
         self.background_down = ''
+        self.background_disabled_normal = ''
         
         # Erstelle abgerundeten Hintergrund
         with self.canvas.before:
             from kivy.graphics import Color, RoundedRectangle
-            Color(*self.background_color[:3], self.background_color[3])  # RGBA
+            self.bg_color = Color(*self.custom_bg_color)
             self.bg_rect = RoundedRectangle(
                 size=self.size, 
                 pos=self.pos, 
-                radius=[15, 15, 15, 15]  # Radius für alle 4 Ecken
+                radius=[15]  # Einheitlicher Radius
             )
             
         # Aktualisiere Größe und Position bei Änderungen
