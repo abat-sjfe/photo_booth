@@ -5,6 +5,7 @@ from kivy.uix.button import Button
 from kivy.uix.image import Image
 from kivy.clock import Clock
 from kivy.core.window import Window
+from kivy.graphics import Color, Rectangle
 from picamera2 import Picamera2
 import os
 
@@ -52,9 +53,20 @@ class CameraWidget(Image):
 class PhotoBoothScreen(FloatLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        
+        # Fester Hintergrund
+        with self.canvas.before:
+            Color(0.1, 0.1, 0.2, 1)  # Dunkelblauer Hintergrund
+            self.bg_rect = Rectangle(size=self.size, pos=self.pos)
+            self.bind(size=self._update_bg, pos=self._update_bg)
 
-        # Kamera als Vollbild-Hintergrund
-        self.camera = CameraWidget(allow_stretch=True, keep_ratio=False)
+        # Kamera-Preview in der Mitte (kleiner Bereich)
+        self.camera = CameraWidget(
+            allow_stretch=True, 
+            keep_ratio=True,
+            size_hint=(0.6, 0.7),  # 60% Breite, 70% Höhe
+            pos_hint={'center_x': 0.5, 'center_y': 0.55}  # Zentriert, etwas nach oben
+        )
         self.add_widget(self.camera)
 
         # Foto-Button unten links
@@ -78,6 +90,11 @@ class PhotoBoothScreen(FloatLayout):
         )
         btn_gallery.bind(on_release=self.open_gallery)
         self.add_widget(btn_gallery)
+
+    def _update_bg(self, instance, value):
+        """Hintergrund an Fenstergröße anpassen"""
+        self.bg_rect.pos = instance.pos
+        self.bg_rect.size = instance.size
 
     def take_photo(self, instance):
         self.camera.capture()
