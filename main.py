@@ -217,13 +217,27 @@ class ImageViewScreen(Screen):
         self.current_path = None
         self.temp = False
         self.from_gallery = False
+        self.gallery_images = []  # Liste aller Gallery-Bilder
+        self.current_image_index = 0  # Index des aktuellen Bildes
+        
+        # Swipe-Erkennung
+        self.touch_start_x = None
+        self.min_swipe_distance = 100  # Mindestdistanz für Swipe
 
-    def set_image(self, path, temp=False, from_gallery=False):
+    def set_image(self, path, temp=False, from_gallery=False, gallery_images=None, image_index=0):
         self.image_widget.source = path
         self.image_widget.reload()
         self.current_path = path
         self.temp = temp
         self.from_gallery = from_gallery
+        
+        # Gallery-Navigation Setup
+        if from_gallery and gallery_images:
+            self.gallery_images = gallery_images
+            self.current_image_index = image_index
+        else:
+            self.gallery_images = []
+            self.current_image_index = 0
         
         # Button-Text je nach Herkunft anpassen
         if from_gallery:
@@ -259,6 +273,50 @@ class ImageViewScreen(Screen):
             self.manager.current = "gallery"
         else:
             self.manager.current = "photo"
+
+    def on_touch_down(self, touch):
+        if self.from_gallery and self.gallery_images and self.image_widget.collide_point(*touch.pos):
+            self.touch_start_x = touch.x
+            return True
+        return super().on_touch_down(touch)
+
+    def on_touch_up(self, touch):
+        if (self.from_gallery and self.gallery_images and 
+            self.touch_start_x is not None and 
+            self.image_widget.collide_point(*touch.pos)):
+            
+            # Berechne Swipe-Distanz
+            swipe_distance = touch.x - self.touch_start_x
+            
+            if abs(swipe_distance) > self.min_swipe_distance:
+                if swipe_distance > 0:
+                    # Swipe nach rechts = vorheriges Bild
+                    self.show_previous_image()
+                else:
+                    # Swipe nach links = nächstes Bild
+                    self.show_next_image()
+            
+            self.touch_start_x = None
+            return True
+        return super().on_touch_up(touch)
+
+    def show_next_image(self):
+        """Zeige nächstes Bild in der Gallery"""
+        if self.current_image_index < len(self.gallery_images) - 1:
+            self.current_image_index += 1
+            new_path = self.gallery_images[self.current_image_index]
+            self.current_path = new_path
+            self.image_widget.source = new_path
+            self.image_widget.reload()
+
+    def show_previous_image(self):
+        """Zeige vorheriges Bild in der Gallery"""
+        if self.current_image_index > 0:
+            self.current_image_index -= 1
+            new_path = self.gallery_images[self.current_image_index]
+            self.current_path = new_path
+            self.image_widget.source = new_path
+            self.image_widget.reload()
 
 
 # --------- Clickable Image Widget für Gallery ---------
@@ -336,25 +394,43 @@ class GalleryScreen(Screen):
 
     def load_images(self):
         self.grid.clear_widgets()
+        self.image_paths = []  # Liste aller Bildpfade für Swipe-Navigation
+        
         if os.path.exists(BILDER_DIR):
+            # Sammle alle Bildpfade
             for file in sorted(os.listdir(BILDER_DIR), reverse=True):
                 if file.lower().endswith((".png", ".jpg", ".jpeg")):
                     img_path = os.path.join(BILDER_DIR, file)
-                    # Erstelle ein benutzerdefiniertes Image-Widget mit besserer Touch-Behandlung
-                    thumb = ClickableImage(
-                        source=img_path,
-                        size_hint_y=None, 
-                        height=200, 
-                        allow_stretch=True,
-                        image_path=img_path,
-                        gallery_screen=self
-                    )
-                    self.grid.add_widget(thumb)
+                    self.image_paths.append(img_path)
+            
+            # Erstelle Thumbnails
+            for img_path in self.image_paths:
+                thumb = ClickableImage(
+                    source=img_path,
+                    size_hint_y=None, 
+                    height=200, 
+                    allow_stretch=True,
+                    image_path=img_path,
+                    gallery_screen=self
+                )
+                self.grid.add_widget(thumb)
 
     def open_image(self, path):
         """Öffnet ein Bild - wird nur bei tatsächlichen Klicks aufgerufen"""
+        # Finde Index des aktuellen Bildes für Swipe-Navigation
+        try:
+            image_index = self.image_paths.index(path)
+        except ValueError:
+            image_index = 0
+            
         image_view = self.manager.get_screen("imageview")
-        image_view.set_image(path, temp=False, from_gallery=True)
+        image_view.set_image(
+            path, 
+            temp=False, 
+            from_gallery=True,
+            gallery_images=self.image_paths,
+            image_index=image_index
+        )
         self.manager.current = "imageview"
 
 
