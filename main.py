@@ -225,6 +225,8 @@ class ImageViewScreen(Screen):
         self.min_swipe_distance = 100  # Mindestdistanz für Swipe
 
     def set_image(self, path, temp=False, from_gallery=False, gallery_images=None, image_index=0):
+        print(f"set_image aufgerufen - from_gallery: {from_gallery}, path: {path}")
+        
         self.image_widget.source = path
         self.image_widget.reload()
         self.current_path = path
@@ -235,26 +237,34 @@ class ImageViewScreen(Screen):
         if from_gallery and gallery_images:
             self.gallery_images = gallery_images
             self.current_image_index = image_index
+            print(f"Gallery-Modus: {len(gallery_images)} Bilder, Index: {image_index}")
         else:
             self.gallery_images = []
             self.current_image_index = 0
+            print("Foto-Modus")
         
         # Button-Text je nach Herkunft anpassen
         if from_gallery:
             # Aus Gallery: Zurück-Button statt Speichern
             self.btn_save.text = "Zurück"
             self.btn_delete.text = "Löschen"
+            print("Buttons auf 'Zurück' und 'Löschen' gesetzt")
         else:
             # Neues Foto: Speichern und Löschen
             self.btn_save.text = "Speichern"
             self.btn_delete.text = "Löschen"
+            print("Buttons auf 'Speichern' und 'Löschen' gesetzt")
 
     def save_photo(self, instance):
+        print(f"save_photo aufgerufen - from_gallery: {self.from_gallery}, Button-Text: {self.btn_save.text}")
+        
         if self.from_gallery:
             # Zurück zur Gallery
+            print("Gehe zurück zur Gallery")
             self.manager.current = "gallery"
         else:
             # Foto speichern (nur bei neuen Fotos)
+            print("Speichere neues Foto")
             if self.temp and os.path.exists(self.current_path):
                 os.makedirs(BILDER_DIR, exist_ok=True)
                 filename = os.path.join(
@@ -324,12 +334,15 @@ class ImageViewScreen(Screen):
 
     def _update_button_texts(self):
         """Aktualisiert Button-Texte basierend auf Herkunft"""
+        print(f"_update_button_texts - from_gallery: {self.from_gallery}")
         if self.from_gallery:
             self.btn_save.text = "Zurück"
             self.btn_delete.text = "Löschen"
+            print("Buttons auf Gallery-Modus gesetzt")
         else:
             self.btn_save.text = "Speichern"
             self.btn_delete.text = "Löschen"
+            print("Buttons auf Foto-Modus gesetzt")
 
 
 # --------- Clickable Image Widget für Gallery ---------
