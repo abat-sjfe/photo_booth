@@ -192,25 +192,25 @@ class ImageViewScreen(Screen):
         self.image_widget = Image(allow_stretch=True, keep_ratio=False)
         self.layout.add_widget(self.image_widget)
 
-        btn_save = RoundedButton(
+        self.btn_save = RoundedButton(
             text="Speichern",
             font_size=32,
             size_hint=(0.3, 0.15),
             pos_hint={'x': 0.05, 'y': 0.05},
             background_color=(0, 0, 0, 0.5)
         )
-        btn_save.bind(on_release=self.save_photo)
-        self.layout.add_widget(btn_save)
+        self.btn_save.bind(on_release=self.save_photo)
+        self.layout.add_widget(self.btn_save)
 
-        btn_delete = RoundedButton(
+        self.btn_delete = RoundedButton(
             text="Löschen",
             font_size=32,
             size_hint=(0.3, 0.15),
             pos_hint={'right': 0.95, 'y': 0.05},
             background_color=(0, 0, 0, 0.5)
         )
-        btn_delete.bind(on_release=self.delete_photo)
-        self.layout.add_widget(btn_delete)
+        self.btn_delete.bind(on_release=self.delete_photo)
+        self.layout.add_widget(self.btn_delete)
 
         self.add_widget(self.layout)
 
@@ -242,12 +242,12 @@ class ImageViewScreen(Screen):
         # Button-Text je nach Herkunft anpassen
         if from_gallery:
             # Aus Gallery: Zurück-Button statt Speichern
-            self.layout.children[1].text = "Zurück"  # btn_save
-            self.layout.children[0].text = "Löschen"  # btn_delete
+            self.btn_save.text = "Zurück"
+            self.btn_delete.text = "Löschen"
         else:
             # Neues Foto: Speichern und Löschen
-            self.layout.children[1].text = "Speichern"  # btn_save
-            self.layout.children[0].text = "Löschen"   # btn_delete
+            self.btn_save.text = "Speichern"
+            self.btn_delete.text = "Löschen"
 
     def save_photo(self, instance):
         if self.from_gallery:
@@ -308,6 +308,8 @@ class ImageViewScreen(Screen):
             self.current_path = new_path
             self.image_widget.source = new_path
             self.image_widget.reload()
+            # Stelle sicher, dass Buttons korrekt bleiben
+            self._update_button_texts()
 
     def show_previous_image(self):
         """Zeige vorheriges Bild in der Gallery"""
@@ -317,6 +319,17 @@ class ImageViewScreen(Screen):
             self.current_path = new_path
             self.image_widget.source = new_path
             self.image_widget.reload()
+            # Stelle sicher, dass Buttons korrekt bleiben
+            self._update_button_texts()
+
+    def _update_button_texts(self):
+        """Aktualisiert Button-Texte basierend auf Herkunft"""
+        if self.from_gallery:
+            self.btn_save.text = "Zurück"
+            self.btn_delete.text = "Löschen"
+        else:
+            self.btn_save.text = "Speichern"
+            self.btn_delete.text = "Löschen"
 
 
 # --------- Clickable Image Widget für Gallery ---------
