@@ -21,22 +21,21 @@ class CameraWidget(Image):
         )
         self.picam2.configure(config)
 
-        # Weißabgleich auf automatisch setzen
+        # Weißabgleich Auto
         try:
-            self.picam2.set_controls({"AwbMode": 0})  # 0 = Auto
+            self.picam2.set_controls({"AwbMode": 0})  # Auto White Balance
         except Exception:
-            pass  # falls AWB-Mode nicht verfügbar ist
+            pass
 
         self.picam2.start()
 
-        # 30 FPS Update-Loop für Livebild
+        # Jede 1/30 Sekunde Vorschau aktualisieren
         Clock.schedule_interval(self.update, 1/30)
 
     def update(self, dt):
-        # Live-Bild abrufen
-        frame = self.picam2.capture_array()
+        # Direktes Livebild abrufen
+        frame = self.picam2.capture_array()  # NumPy-Array (RGB888)
 
-        # Kivy-Texture erstellen und Buffer blitten
         buf = frame.tobytes()
         from kivy.graphics.texture import Texture
         texture = self.texture
@@ -54,7 +53,7 @@ class PhotoBoothScreen(FloatLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        # Kamera im Hintergrund (voll gestreckt)
+        # Kamera als Vollbild-Hintergrund
         self.camera = CameraWidget(allow_stretch=True, keep_ratio=False)
         self.add_widget(self.camera)
 
@@ -63,7 +62,7 @@ class PhotoBoothScreen(FloatLayout):
             text="📸 Foto",
             font_size=32,
             size_hint=(0.25, 0.15),
-            pos_hint={'right': 0.95, 'y': 0.05},
+            pos_hint={'x': 0.05, 'y': 0.05},
             background_color=(0, 0, 0, 0.5)
         )
         btn_capture.bind(on_release=self.take_photo)
@@ -71,10 +70,10 @@ class PhotoBoothScreen(FloatLayout):
 
         # Galerie-Button unten rechts
         btn_gallery = Button(
-            text=" Galerie",
+            text="🖼 Galerie",
             font_size=32,
             size_hint=(0.25, 0.15),
-            pos_hint={'x': 0.05, 'top': 0.95},
+            pos_hint={'right': 0.95, 'y': 0.05},
             background_color=(0, 0, 0, 0.5)
         )
         btn_gallery.bind(on_release=self.open_gallery)
