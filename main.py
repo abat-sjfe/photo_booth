@@ -128,7 +128,7 @@ class ImageViewScreen(Screen):
         self.layout.add_widget(self.image_widget)
 
         btn_save = Button(
-            text="💾 Speichern",
+            text="Speichern",
             font_size=32,
             size_hint=(0.3, 0.15),
             pos_hint={'x': 0.05, 'y': 0.05},
@@ -138,7 +138,7 @@ class ImageViewScreen(Screen):
         self.layout.add_widget(btn_save)
 
         btn_delete = Button(
-            text="🗑 Löschen",
+            text="Löschen",
             font_size=32,
             size_hint=(0.3, 0.15),
             pos_hint={'right': 0.95, 'y': 0.05},
@@ -179,6 +179,13 @@ class GalleryScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         layout = FloatLayout()
+        
+        # Hintergrundfarbe für die Gallery hinzufügen
+        from kivy.graphics import Color, Rectangle
+        with layout.canvas.before:
+            Color(0.65, 0.55, 0.4, 1)  # Warmes Eichenholz-Hellbraun
+            self.bg_rect = Rectangle(size=layout.size, pos=layout.pos)
+            layout.bind(size=self._update_bg, pos=self._update_bg)
 
         scroll = ScrollView(size_hint=(1, 0.9), pos_hint={'x': 0, 'y': 0})
         self.grid = GridLayout(cols=3, spacing=10, size_hint_y=None, padding=10)
@@ -186,7 +193,7 @@ class GalleryScreen(Screen):
         scroll.add_widget(self.grid)
 
         btn_back = Button(
-            text="⬅ Zurück",
+            text="Zurück",
             font_size=28,
             size_hint=(0.2, 0.1),
             pos_hint={'x': 0.02, 'top': 0.98},
@@ -200,6 +207,11 @@ class GalleryScreen(Screen):
 
     def go_back(self, *args):
         self.manager.current = "photo"
+
+    def _update_bg(self, instance, value):
+        """Hintergrund an Layout-Größe anpassen"""
+        self.bg_rect.pos = instance.pos
+        self.bg_rect.size = instance.size
 
     def on_pre_enter(self, *args):
         self.load_images()
