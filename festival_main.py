@@ -13,8 +13,10 @@ from socketserver import TCPServer
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_DIR = os.path.join(SCRIPT_DIR, "uploads")
+COUNTER_FILE = os.path.join(SCRIPT_DIR, "photo_count.txt")
 
-# ------------ Mini-Webserver ------------
+
+# ------------ Webserver ------------
 def start_webserver():
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     os.chdir(UPLOAD_DIR)
@@ -33,6 +35,22 @@ def get_ip():
     finally:
         s.close()
     return ip
+
+
+# ------------ Counter Funktionen ------------
+def load_counter():
+    if os.path.exists(COUNTER_FILE):
+        try:
+            with open(COUNTER_FILE, "r") as f:
+                return int(f.read().strip())
+        except:
+            return 0
+    else:
+        return 0
+
+def save_counter(value):
+    with open(COUNTER_FILE, "w") as f:
+        f.write(str(value))
 
 
 # ------------ Kamera Widget ------------
@@ -75,6 +93,8 @@ class PhotoBoothScreen(Screen):
         self.countdown_remaining = 0
         self.countdown_event = None
 
+        self.photo_counter = load_counter()
+
         self.camera = CameraWidget(allow_stretch=True, keep_ratio=False)
         self.layout.add_widget(self.camera)
 
@@ -82,6 +102,13 @@ class PhotoBoothScreen(Screen):
                                      color=(1, 1, 1, 1),
                                      pos_hint={'center_x': 0.5, 'center_y': 0.5})
         self.layout.add_widget(self.countdown_label)
+
+        # Anzeige des Counters
+        self.counter_label = Label(text=f"Fotos gemacht: {self.photo_counter}",
+                                   font_size=24,
+                                   color=(1, 1, 1, 1),
+                                   pos_hint={'right': 0.98, 'top': 0.98})
+        self.layout.add_widget(self.counter_label)
 
         self.btn_photo = Button(
             text="📸 Foto",
@@ -119,6 +146,11 @@ class PhotoBoothScreen(Screen):
         save_path = os.path.join(UPLOAD_DIR, filename)
         self.camera.capture(save_path)
 
+        # Counter erhöhen und speichern
+        self.photo_counter += 1
+        save_counter(self.photo_counter)
+        self.counter_label.text = f"Fotos gemacht: {self.photo_counter}"
+
         # QR-Code erstellen
         ip_addr = get_ip()
         link = f"http://{ip_addr}:8000/{filename}"
@@ -126,7 +158,6 @@ class PhotoBoothScreen(Screen):
         qr_path = os.path.join(UPLOAD_DIR, "qr.png")
         qr.save(qr_path)
 
-        # In QRScreen übergeben
         qr_screen = self.manager.get_screen("qr")
         qr_screen.show_photo_and_qr(save_path, qr_path)
 
@@ -134,23 +165,20 @@ class PhotoBoothScreen(Screen):
         self.btn_photo.disabled = False
 
 
-# ------------ QRScreen (Foto + QR) ------------
+# ------------ QRScreen ------------
 class QRScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.layout = FloatLayout()
 
-        # Foto groß als Hintergrund
         self.photo_widget = Image(allow_stretch=True, keep_ratio=False,
                                   size_hint=(1,1), pos_hint={'x':0,'y':0})
         self.layout.add_widget(self.photo_widget)
 
-        # QR-Code klein in der Ecke
         self.qr_widget = Image(size_hint=(0.25, 0.25),
                                pos_hint={'right': 0.98, 'y': 0.02})
         self.layout.add_widget(self.qr_widget)
 
-        # Button Neues Foto
         self.btn_back = Button(
             text="📷 Neues Foto",
             font_size=24,
@@ -163,13 +191,25 @@ class QRScreen(Screen):
 
         self.add_widget(self.layout)
 
+        self.current_photo = None
+        self.current_qr = None
+
     def show_photo_and_qr(self, photo_path, qr_path):
         self.photo_widget.source = photo_path
         self.photo_widget.reload()
         self.qr_widget.source = qr_path
         self.qr_widget.reload()
+        self.current_photo = photo_path
+        self.current_qr = qr_path
 
     def go_back(self, *args):
+        # Foto und QR-Code löschen
+        for f in [self.current_photo, self.current_qr]:
+            try:
+                if f and os.path.exists(f):
+                    os.remove(f)
+            except:
+                pass
         self.manager.current = "photo"
 
 
