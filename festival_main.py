@@ -7,20 +7,20 @@ from kivy.uix.label import Label
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.clock import Clock
 from picamera2 import Picamera2
-import os, time, threading, socket, qrcode
+import os, time, threading, socket, qrcode, mimetypes
 from http.server import SimpleHTTPRequestHandler
 from socketserver import TCPServer
-import mimetypes
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_DIR = os.path.join(SCRIPT_DIR, "uploads")
 COUNTER_FILE = os.path.join(SCRIPT_DIR, "photo_count.txt")
 
-# ------------ Direktdownload-HTTP-Handler ------------
+
+# ------------ Direktdownload HTTP Handler ------------
 class DownloadHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path.startswith("/") and len(self.path) > 1:
-            filename = self.path[1:]  # Strip leading slash
+            filename = self.path[1:]
             file_path = os.path.join(UPLOAD_DIR, filename)
             if os.path.exists(file_path):
                 self.send_response(200)
@@ -34,6 +34,7 @@ class DownloadHandler(SimpleHTTPRequestHandler):
                 return
         self.send_error(404, "File not found")
 
+
 def start_webserver():
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     os.chdir(UPLOAD_DIR)
@@ -41,16 +42,10 @@ def start_webserver():
         print("Webserver (Direktdownload) läuft auf Port 8000")
         httpd.serve_forever()
 
+
 def get_ip():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        s.connect(("8.8.8.8", 80))
-        ip = s.getsockname()[0]
-    except Exception:
-        ip = "127.0.0.1"
-    finally:
-        s.close()
-    return ip
+    return "192.168.4.1"  # feste IP mit Fotobox-Hotspot
+
 
 # ------------ Counter Funktionen ------------
 def load_counter():
@@ -63,9 +58,11 @@ def load_counter():
     else:
         return 0
 
+
 def save_counter(value):
     with open(COUNTER_FILE, "w") as f:
         f.write(str(value))
+
 
 # ------------ Kamera Widget ------------
 class CameraWidget(Image):
@@ -97,6 +94,7 @@ class CameraWidget(Image):
     def capture(self, path):
         self.picam2.capture_file(path)
 
+
 # ------------ PhotoBooth Screen ------------
 class PhotoBoothScreen(Screen):
     def __init__(self, **kwargs):
@@ -115,7 +113,7 @@ class PhotoBoothScreen(Screen):
                                      pos_hint={'center_x': 0.5, 'center_y': 0.5})
         self.layout.add_widget(self.countdown_label)
 
-        # Counter-Anzeige
+        # Counter oben
         self.counter_label = Label(text=f"Fotos gemacht: {self.photo_counter}",
                                    font_size=24,
                                    color=(1, 1, 1, 1),
@@ -163,7 +161,7 @@ class PhotoBoothScreen(Screen):
         save_counter(self.photo_counter)
         self.counter_label.text = f"Fotos gemacht: {self.photo_counter}"
 
-        # QR-Code erzeugen
+        # QR-Code erstellen
         ip_addr = get_ip()
         link = f"http://{ip_addr}:8000/{filename}"
         qr = qrcode.make(link)
@@ -176,7 +174,8 @@ class PhotoBoothScreen(Screen):
         self.manager.current = "qr"
         self.btn_photo.disabled = False
 
-# ------------ QRScreen ------------
+
+# ------------ QRScreen mit Auto-Return ------------
 class QRScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -190,20 +189,17 @@ class QRScreen(Screen):
                                pos_hint={'right': 0.98, 'y': 0.02})
         self.layout.add_widget(self.qr_widget)
 
-        self.btn_back = Button(
-            text="📷 Neues Foto",
-            font_size=24,
-            size_hint=(0.3, 0.1),
-            pos_hint={'center_x': 0.5, 'y': 0.05},
-            background_color=(0, 0, 0, 0.5)
-        )
-        self.btn_back.bind(on_release=self.go_back)
-        self.layout.add_widget(self.btn_back)
+        self.label_info = Label(text="Scanne diesen Code zum Runterladen",
+                                font_size=20,
+                                color=(1,1,1,1),
+                                pos_hint={'center_x':0.5, 'top':0.95})
+        self.layout.add_widget(self.label_info)
 
         self.add_widget(self.layout)
 
         self.current_photo = None
         self.current_qr = None
+        self.auto_timer = None
 
     def show_photo_and_qr(self, photo_path, qr_path):
         self.photo_widget.source = photo_path
@@ -213,7 +209,13 @@ class QRScreen(Screen):
         self.current_photo = photo_path
         self.current_qr = qr_path
 
+        # Starte automatischen Rücksprung nach 30 Sekunden
+        if self.auto_timer:
+            Clock.unschedule(self.auto_timer)
+        self.auto_timer = Clock.schedule_once(self.go_back, 30)
+
     def go_back(self, *args):
+        # Foto und QR löschen
         for f in [self.current_photo, self.current_qr]:
             try:
                 if f and os.path.exists(f):
@@ -221,6 +223,7 @@ class QRScreen(Screen):
             except:
                 pass
         self.manager.current = "photo"
+
 
 # ------------ App ------------
 class PhotoBoothApp(App):
@@ -232,6 +235,7 @@ class PhotoBoothApp(App):
         sm.add_widget(PhotoBoothScreen(name="photo"))
         sm.add_widget(QRScreen(name="qr"))
         return sm
+
 
 if __name__ == '__main__':
     PhotoBoothApp().run()
