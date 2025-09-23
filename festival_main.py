@@ -8,25 +8,21 @@ from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.clock import Clock
 from picamera2 import Picamera2
 import os, time, shutil, threading, socket, qrcode
-from PIL import Image as PILImage
 from http.server import SimpleHTTPRequestHandler
 from socketserver import TCPServer
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_DIR = os.path.join(SCRIPT_DIR, "uploads")
-TEMP_FILE = os.path.join(SCRIPT_DIR, "temp.jpg")
 
-
-# ---- Mini-Webserver für Uploads ----
+# ------------ Mini-Webserver ------------
 def start_webserver():
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
     os.chdir(UPLOAD_DIR)
     handler = SimpleHTTPRequestHandler
     with TCPServer(("", 8000), handler) as httpd:
         print("Webserver läuft auf Port 8000")
         httpd.serve_forever()
 
-
-# ---- Hilfsfunktion: IP-Adresse finden ----
 def get_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
@@ -39,7 +35,7 @@ def get_ip():
     return ip
 
 
-# ---- Kamera Widget ----
+# ------------ Kamera Widget ------------
 class CameraWidget(Image):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -70,7 +66,7 @@ class CameraWidget(Image):
         self.picam2.capture_file(path)
 
 
-# ---- PhotoBooth Screen ----
+# ------------ PhotoBooth Screen ------------
 class PhotoBoothScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -118,74 +114,72 @@ class PhotoBoothScreen(Screen):
             self.take_photo()
 
     def take_photo(self):
-        self.camera.capture(TEMP_FILE)
+        # Automatisches Speichern mit Zeitstempel im Uploads-Verzeichnis
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
+        filename = time.strftime("photo_%Y%m%d_%H%M%S.jpg")
+        save_path = os.path.join(UPLOAD_DIR, filename)
+        self.camera.capture(save_path)
+
+        # QR-Code erzeugen
+        ip_addr = get_ip()
+        link = f"http://{ip_addr}:8000/{filename}"
+        qr = qrcode.make(link)
+        qr_path = os.path.join(UPLOAD_DIR, "qr.png")
+        qr.save(qr_path)
+
         image_view = self.manager.get_screen("imageview")
-        image_view.set_image(TEMP_FILE)
+        image_view.show_qr(qr_path)
         self.manager.current = "imageview"
         self.btn_photo.disabled = False
 
 
-# ---- ImageView with QR ----
-class ImageViewScreen(Screen):
+# ------------ QR-Code-Screen ------------
+class QRScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.layout = FloatLayout()
-        self.image_widget = Image(allow_stretch=True, keep_ratio=False)
-        self.layout.add_widget(self.image_widget)
 
-        btn_save = Button(
-            text="💾 Speichern & QR-Code anzeigen",
+        self.qr_widget = Image(size_hint=(0.4, 0.4),
+                               pos_hint={'center_x': 0.5, 'center_y': 0.6})
+        self.layout.add_widget(self.qr_widget)
+
+        self.label_info = Label(
+            text="Scanne den QR-Code, um dein Foto herunterzuladen",
+            font_size=20,
+            pos_hint={'center_x': 0.5, 'y': 0.05}
+        )
+        self.layout.add_widget(self.label_info)
+
+        btn_back = Button(
+            text="📷 Neues Foto",
             font_size=24,
-            size_hint=(0.5, 0.15),
+            size_hint=(0.3, 0.1),
             pos_hint={'center_x': 0.5, 'y': 0.05},
             background_color=(0, 0, 0, 0.5)
         )
-        btn_save.bind(on_release=self.save_and_qr)
-        self.layout.add_widget(btn_save)
-
-        self.qr_image = Image(size_hint=(0.5, 0.5),
-                              pos_hint={'center_x': 0.5, 'center_y': 0.5})
-        self.layout.add_widget(self.qr_image)
+        btn_back.bind(on_release=self.go_back)
+        self.layout.add_widget(btn_back)
 
         self.add_widget(self.layout)
-        self.current_path = None
 
-    def set_image(self, path):
-        self.image_widget.source = path
-        self.image_widget.reload()
-        self.current_path = path
-        self.qr_image.source = ''  # QR-Code ausblenden
+    def show_qr(self, path):
+        self.qr_widget.source = path
+        self.qr_widget.reload()
 
-    def save_and_qr(self, instance):
-        if os.path.exists(self.current_path):
-            os.makedirs(UPLOAD_DIR, exist_ok=True)
-            filename = time.strftime("photo_%Y%m%d_%H%M%S.jpg")
-            save_path = os.path.join(UPLOAD_DIR, filename)
-            shutil.move(self.current_path, save_path)
-
-            # QR-Code erzeugen
-            ip_addr = get_ip()
-            link = f"http://{ip_addr}:8000/{filename}"
-            qr = qrcode.make(link)
-            qr_path = os.path.join(SCRIPT_DIR, "qr.png")
-            qr.save(qr_path)
-            self.qr_image.source = qr_path
-            self.qr_image.reload()
-            print(f"Download-Link: {link}")
+    def go_back(self, *args):
+        # Zurück zur Kamera
+        self.manager.current = "photo"
 
 
-# ---- App ----
+# ------------ App ------------
 class PhotoBoothApp(App):
     def build(self):
         Window.fullscreen = 'auto'
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-        # Webserver in Thread starten
         threading.Thread(target=start_webserver, daemon=True).start()
 
         sm = ScreenManager()
         sm.add_widget(PhotoBoothScreen(name="photo"))
-        sm.add_widget(ImageViewScreen(name="imageview"))
+        sm.add_widget(QRScreen(name="imageview"))
         return sm
 
 
