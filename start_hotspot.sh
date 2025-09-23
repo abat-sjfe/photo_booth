@@ -1,6 +1,10 @@
 #!/bin/bash
-set -e
-echo "[Hotspot] Starte WLAN Access Point 'Fotobox'..."
-sudo systemctl start hostapd
-sudo systemctl start dnsmasq
-echo "[Hotspot] Fertig. Netzwerk 'Fotobox' läuft jetzt mit Passwort 'Fritz123' und 5-Minuten-Lease."
+IFACE="wlan0"  # ggf. anpassen!
+SSID="Fotobox"
+PASS="Fritz123"
+
+nmcli device wifi hotspot ifname $IFACE con-name $SSID ssid $SSID password $PASS
+nmcli connection modify $SSID ipv4.addresses 192.168.4.1/24 ipv4.method shared
+nmcli connection up $SSID
+echo "Hotspot '$SSID' gestartet auf $IFACE mit Passwort '$PASS'"
+echo "IP-Adresse: 192.168.4.1"

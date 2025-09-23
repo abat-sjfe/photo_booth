@@ -1,50 +1,39 @@
 #!/bin/bash
 set -e
 
-echo "[Hotspot] Installiere benötigte Pakete..."
-sudo apt update
-sudo apt install -y hostapd dnsmasq
+# ===== Parameter =====
+IFACE="wlan0"       # ggf. anpassen falls dein WLAN Interface anders heißt (prüfen mit "ip link show")
+SSID="Fotobox"
+PASS="Fritz123"
+IPADDR="192.168.4.1/24"
+LEASE_RANGE="192.168.4.10,192.168.4.50,255.255.255.0,5m"
 
-echo "[Hotspot] Konfiguriere Hostapd (SSID 'Fotobox', WPA2, Passwort 'Fritz123')..."
-sudo bash -c 'cat > /etc/hostapd/hostapd.conf <<EOF
-interface=wlan0
-driver=nl80211
-ssid=Fotobox
-hw_mode=g
-channel=6
-wmm_enabled=0
-macaddr_acl=0
-auth_algs=1
-ignore_broadcast_ssid=0
-wpa=2
-wpa_passphrase=Fritz123
-wpa_key_mgmt=WPA-PSK
-rsn_pairwise=CCMP
-EOF'
-
-sudo sed -i 's|#DAEMON_CONF=".*"|DAEMON_CONF="/etc/hostapd/hostapd.conf"|' /etc/default/hostapd
-
-echo "[Hotspot] Setze feste IP-Adresse für wlan0..."
-if ! grep -q "interface wlan0" /etc/dhcpcd.conf; then
-sudo bash -c 'cat >> /etc/dhcpcd.conf <<EOF
-
-interface wlan0
-static ip_address=192.168.4.1/24
-nohook wpa_supplicant
-EOF'
+echo "[1/5] Prüfe ob NetworkManager vorhanden ist..."
+if ! command -v nmcli >/dev/null 2>&1; then
+    echo "⚠ NetworkManager ist nicht installiert. Installiere..."
+    sudo apt update
+    sudo apt install -y network-manager
 fi
 
-echo "[Hotspot] Konfiguriere Dnsmasq mit 5-Minuten-Lease..."
-sudo mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig || true
-sudo bash -c 'cat > /etc/dnsmasq.conf <<EOF
-interface=wlan0
-dhcp-range=192.168.4.10,192.168.4.50,255.255.255.0,5m
-EOF'
+echo "[2/5] Erstelle Hotspot '$SSID'..."
+nmcli connection delete "$SSID" >/dev/null 2>&1 || true
+nmcli device wifi hotspot ifname "$IFACE" con-name "$SSID" ssid "$SSID" password "$PASS"
 
-echo "[Hotspot] Aktivierte Dienste für automatischen Start..."
-sudo systemctl unmask hostapd
-sudo systemctl enable hostapd
-sudo systemctl enable dnsmasq
+echo "[3/5] Setze feste IP $IPADDR..."
+nmcli connection modify "$SSID" ipv4.addresses "$IPADDR" ipv4.method shared
 
-echo "[Hotspot] Konfiguration abgeschlossen!"
-echo "Starte den Access Point mit ./start_hotspot.sh"
+echo "[4/5] Setze DHCP-Lease-Zeit auf 5 Minuten..."
+sudo mkdir -p /etc/NetworkManager/dnsmasq-shared.d
+echo "dhcp-range=$LEASE_RANGE" | sudo tee /etc/NetworkManager/dnsmasq-shared.d/$SSID.conf >/dev/null
+
+echo "[5/5] Starte Hotspot..."
+sudo systemctl restart NetworkManager
+nmcli connection up "$SSID"
+
+echo ""
+echo "✅ Hotspot '$SSID' gestartet!"
+echo "   Passwort: $PASS"
+echo "   IP: ${IPADDR%/*}"
+echo "   DHCP-Lease: 5 Minuten"
+echo ""
+echo "Mit einem Gerät ins WLAN '$SSID' einwählen und dann im Fotobox-QR-Code http://${IPADDR%/*}:8000 verwenden."
