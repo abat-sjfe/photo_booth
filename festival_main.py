@@ -10,19 +10,35 @@ from picamera2 import Picamera2
 import os, time, threading, socket, qrcode
 from http.server import SimpleHTTPRequestHandler
 from socketserver import TCPServer
+import mimetypes
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_DIR = os.path.join(SCRIPT_DIR, "uploads")
 COUNTER_FILE = os.path.join(SCRIPT_DIR, "photo_count.txt")
 
+# ------------ Direktdownload-HTTP-Handler ------------
+class DownloadHandler(SimpleHTTPRequestHandler):
+    def do_GET(self):
+        if self.path.startswith("/") and len(self.path) > 1:
+            filename = self.path[1:]  # Strip leading slash
+            file_path = os.path.join(UPLOAD_DIR, filename)
+            if os.path.exists(file_path):
+                self.send_response(200)
+                ctype, _ = mimetypes.guess_type(file_path)
+                self.send_header('Content-Type', ctype or 'application/octet-stream')
+                self.send_header('Content-Disposition', f'attachment; filename="{filename}"')
+                self.send_header('Content-Length', os.path.getsize(file_path))
+                self.end_headers()
+                with open(file_path, 'rb') as f:
+                    self.wfile.write(f.read())
+                return
+        self.send_error(404, "File not found")
 
-# ------------ Webserver ------------
 def start_webserver():
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     os.chdir(UPLOAD_DIR)
-    handler = SimpleHTTPRequestHandler
-    with TCPServer(("", 8000), handler) as httpd:
-        print("Webserver läuft auf Port 8000")
+    with TCPServer(("", 8000), DownloadHandler) as httpd:
+        print("Webserver (Direktdownload) läuft auf Port 8000")
         httpd.serve_forever()
 
 def get_ip():
@@ -35,7 +51,6 @@ def get_ip():
     finally:
         s.close()
     return ip
-
 
 # ------------ Counter Funktionen ------------
 def load_counter():
@@ -51,7 +66,6 @@ def load_counter():
 def save_counter(value):
     with open(COUNTER_FILE, "w") as f:
         f.write(str(value))
-
 
 # ------------ Kamera Widget ------------
 class CameraWidget(Image):
@@ -83,7 +97,6 @@ class CameraWidget(Image):
     def capture(self, path):
         self.picam2.capture_file(path)
 
-
 # ------------ PhotoBooth Screen ------------
 class PhotoBoothScreen(Screen):
     def __init__(self, **kwargs):
@@ -92,7 +105,6 @@ class PhotoBoothScreen(Screen):
         self.countdown_seconds = 3
         self.countdown_remaining = 0
         self.countdown_event = None
-
         self.photo_counter = load_counter()
 
         self.camera = CameraWidget(allow_stretch=True, keep_ratio=False)
@@ -103,7 +115,7 @@ class PhotoBoothScreen(Screen):
                                      pos_hint={'center_x': 0.5, 'center_y': 0.5})
         self.layout.add_widget(self.countdown_label)
 
-        # Anzeige des Counters
+        # Counter-Anzeige
         self.counter_label = Label(text=f"Fotos gemacht: {self.photo_counter}",
                                    font_size=24,
                                    color=(1, 1, 1, 1),
@@ -146,12 +158,12 @@ class PhotoBoothScreen(Screen):
         save_path = os.path.join(UPLOAD_DIR, filename)
         self.camera.capture(save_path)
 
-        # Counter erhöhen und speichern
+        # Counter erhöhen
         self.photo_counter += 1
         save_counter(self.photo_counter)
         self.counter_label.text = f"Fotos gemacht: {self.photo_counter}"
 
-        # QR-Code erstellen
+        # QR-Code erzeugen
         ip_addr = get_ip()
         link = f"http://{ip_addr}:8000/{filename}"
         qr = qrcode.make(link)
@@ -163,7 +175,6 @@ class PhotoBoothScreen(Screen):
 
         self.manager.current = "qr"
         self.btn_photo.disabled = False
-
 
 # ------------ QRScreen ------------
 class QRScreen(Screen):
@@ -203,7 +214,6 @@ class QRScreen(Screen):
         self.current_qr = qr_path
 
     def go_back(self, *args):
-        # Foto und QR-Code löschen
         for f in [self.current_photo, self.current_qr]:
             try:
                 if f and os.path.exists(f):
@@ -211,7 +221,6 @@ class QRScreen(Screen):
             except:
                 pass
         self.manager.current = "photo"
-
 
 # ------------ App ------------
 class PhotoBoothApp(App):
@@ -223,7 +232,6 @@ class PhotoBoothApp(App):
         sm.add_widget(PhotoBoothScreen(name="photo"))
         sm.add_widget(QRScreen(name="qr"))
         return sm
-
 
 if __name__ == '__main__':
     PhotoBoothApp().run()
