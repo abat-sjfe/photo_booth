@@ -1,6 +1,38 @@
 #!/bin/bash
 set -e
 
+###############################################################################
+# Raspberry Pi Hotspot Script (NMCLI)
+#
+# Troubleshooting-Anleitung:
+# 1️⃣ Prüfen, ob das WLAN-Interface im Access-Point-Modus funktioniert:
+#     nmcli device wifi hotspot ifname wlan0 ssid TestAP password "12345678"
+#     Falls Fehlermeldung "Device does not support AP mode" → Treiberproblem,
+#     dann musst du hostapd + dnsmasq verwenden (siehe Option 2 unten).
+#
+# 2️⃣ Prüfen, ob NetworkManager das Interface verwaltet:
+#     nmcli device status
+#     Falls bei wlan0 "unmanaged" steht:
+#        sudo nmcli device set wlan0 managed yes
+#
+# 3️⃣ Vor Hotspot-Start eventuell alle WLAN-Verbindungen trennen:
+#     nmcli radio wifi off && sleep 2 && nmcli radio wifi on
+#
+# 4️⃣ Falls Hotspot sofort trennt:
+#     - Security des AP: WPA2 wählen (WPA im Skript entspricht WPA2-PSK)
+#     - Interface im 2.4GHz-Bereich betreiben (hw_mode=g, channel 1-11 mit hostapd)
+#
+# 5️⃣ Testen ob DHCP läuft:
+#     ip addr show wlan0      → sollte 192.168.4.1 haben
+#     sudo tail -f /var/log/syslog | grep dnsmasq   → DHCP-Anfragen sehen
+#
+# 6️⃣ Alternative: Stabile Lösung mit hostapd + dnsmasq
+#     - hostapd: Hotspot-SSID + Passwort
+#     - dnsmasq: IP-Zuweisung
+#     Diese Variante läuft unabhängig vom NetworkManager und ist oft stabiler.
+#
+###############################################################################
+
 # ===== Parameter =====
 IFACE="wlan0"       # ggf. anpassen (prüfen mit: ip link show)
 SSID="Fotobox"
