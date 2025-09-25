@@ -1,42 +1,62 @@
 #!/bin/bash
 set -e
 
+# ===== Parameter für Hotspot =====
 IFACE="wlan0"
 SSID="Fotobox"
 PASS="Fritz123"
-IPADDR="192.168.4.1/24"
+STATIC_IP="192.168.4.1"
 LEASE_RANGE="192.168.4.10,192.168.4.50,255.255.255.0,5m"
+COUNTRY_CODE="DE"
 
-echo "[1/6] Stoppe alle aktiven WLAN-Verbindungen..."
-ACTIVE_CONS=$(nmcli -t -f NAME,DEVICE connection show --active | grep ":${IFACE}" | cut -d: -f1 || true)
-for con in $ACTIVE_CONS; do
-    echo "   Stoppe $con und deaktiviere Autoconnect..."
-    nmcli connection down "$con"
-    nmcli connection modify "$con" connection.autoconnect no
-done
+echo "🔹 Starte Hotspot-only Modus..."
 
-echo "[2/6] Schalte WLAN aus/ein um Interface zu resetten..."
-nmcli radio wifi off
-sleep 2
-nmcli radio wifi on
+# wpa_supplicant stoppen und deaktivieren
+sudo systemctl stop wpa_supplicant || true
+sudo systemctl disable wpa_supplicant || true
 
-echo "[3/6] Erstelle Hotspot '$SSID'..."
-nmcli connection delete "$SSID" >/dev/null 2>&1 || true
-nmcli device set "$IFACE" managed yes
-nmcli device wifi hotspot ifname "$IFACE" con-name "$SSID" ssid "$SSID" password "$PASS"
+# Statische IP setzen
+sudo sed -i "/^interface $IFACE/d" /etc/dhcpcd.conf
+sudo bash -c "cat >> /etc/dhcpcd.conf" <<EOF
+interface $IFACE
+static ip_address=$STATIC_IP/24
+nohook wpa_supplicant
+EOF
+sudo systemctl restart dhcpcd
 
-echo "[4/6] Setze feste IP und DHCP-Range..."
-nmcli connection modify "$SSID" ipv4.addresses "$IPADDR" ipv4.method shared
+# Hostapd-Konfiguration
+sudo bash -c "cat > /etc/hostapd/hostapd.conf" <<EOF
+country_code=$COUNTRY_CODE
+interface=$IFACE
+driver=nl80211
+ssid=$SSID
+hw_mode=g
+channel=6
+wmm_enabled=0
+auth_algs=1
+ignore_broadcast_ssid=0
+wpa=2
+wpa_passphrase=$PASS
+wpa_key_mgmt=WPA-PSK
+rsn_pairwise=CCMP
+EOF
+sudo sed -i "s|#DAEMON_CONF=\"\"|DAEMON_CONF=\"/etc/hostapd/hostapd.conf\"|" /etc/default/hostapd
 
-sudo mkdir -p /etc/NetworkManager/dnsmasq-shared.d
-echo "dhcp-range=$LEASE_RANGE" | sudo tee /etc/NetworkManager/dnsmasq-shared.d/$SSID.conf >/dev/null
+# dnsmasq-Konfiguration
+sudo mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig 2>/dev/null || true
+sudo bash -c "cat > /etc/dnsmasq.conf" <<EOF
+interface=$IFACE
+dhcp-range=$LEASE_RANGE
+EOF
 
-echo "[5/6] Aktivieren des Hotspots..."
-nmcli connection up "$SSID"
+# Dienste starten
+sudo systemctl unmask hostapd
+sudo systemctl enable hostapd
+sudo systemctl enable dnsmasq
+sudo systemctl restart hostapd
+sudo systemctl restart dnsmasq
 
-echo "[6/6] Hotspot läuft!"
+echo "✅ Hotspot gestartet!"
 echo "   SSID: $SSID"
 echo "   Passwort: $PASS"
-echo "   IP: ${IPADDR%/*}"
-echo ""
-echo "Mit einem Gerät ins WLAN '$SSID' einwählen und im Browser http://${IPADDR%/*}:8000 öffnen."
+echo "   IP: $STATIC_IP"
