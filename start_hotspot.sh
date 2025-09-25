@@ -1,28 +1,27 @@
 #!/bin/bash
 set -e
 
-# ===== Parameter für Hotspot =====
+# ===== Parameter =====
 IFACE="wlan0"
 SSID="Fotobox"
 PASS="Fritz123"
 STATIC_IP="192.168.4.1"
+NETMASK="255.255.255.0"
 LEASE_RANGE="192.168.4.10,192.168.4.50,255.255.255.0,5m"
 COUNTRY_CODE="DE"
 
 echo "🔹 Starte Hotspot-only Modus..."
 
-# wpa_supplicant stoppen und deaktivieren
+# wpa_supplicant stoppen
 sudo systemctl stop wpa_supplicant || true
 sudo systemctl disable wpa_supplicant || true
 
-# Statische IP setzen
-sudo sed -i "/^interface $IFACE/d" /etc/dhcpcd.conf
-sudo bash -c "cat >> /etc/dhcpcd.conf" <<EOF
-interface $IFACE
-static ip_address=$STATIC_IP/24
-nohook wpa_supplicant
-EOF
-sudo systemctl restart dhcpcd
+# Statische IP direkt setzen (ohne dhcpcd)
+echo "📡 Setze IP-Adresse $STATIC_IP/$NETMASK auf $IFACE..."
+sudo ip link set "$IFACE" down
+sudo ip addr flush dev "$IFACE"
+sudo ip addr add "$STATIC_IP/24" dev "$IFACE"
+sudo ip link set "$IFACE" up
 
 # Hostapd-Konfiguration
 sudo bash -c "cat > /etc/hostapd/hostapd.conf" <<EOF
