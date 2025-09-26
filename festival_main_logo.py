@@ -112,7 +112,7 @@ class CameraWidget(Image):
                 allow_stretch=True,
                 keep_ratio=True,
                 size_hint=(0.2, 0.15),
-                pos_hint={'center_x': 0.5, 'y': 0.02}
+                pos_hint={'center_x': 0.5, 'y': 0.05}  # y=0.05 bedeutet 5% vom UNTEREN Rand
             )
             self.add_widget(self.overlay_widget)
         else:
@@ -150,9 +150,9 @@ class CameraWidget(Image):
                 ow = int(base.width * 0.2)
                 oh = int(base.height * 0.15)
                 overlay = overlay.resize((ow, oh), PILImage.LANCZOS)
-                # Position: unten mittig
-                x = int((base.width - ow) / 2)
-                y = int(base.height * 0.02)
+                # Position: unten mittig (PIL zählt Y von oben!)
+                x = int((base.width - ow) / 2)      # Horizontal zentriert
+                y = base.height - oh - int(base.height * 0.05)  # Unten mit 5% Abstand
                 base.paste(overlay, (x, y), overlay)
                 base = base.convert("RGB")
                 base.save(path)
