@@ -70,7 +70,7 @@ class CameraWidget(Image):
         super().__init__(**kwargs)
         self.picam2 = Picamera2()
         config = self.picam2.create_preview_configuration(
-            main={"format": "RGB888", "size": (640, 480)}
+            main={"format": "RGB888", "size": (1024, 600)}
         )
         self.picam2.configure(config)
         try:
@@ -100,7 +100,7 @@ class PhotoBoothScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.layout = FloatLayout()
-        self.countdown_seconds = 3
+        self.countdown_seconds = 5
         self.countdown_remaining = 0
         self.countdown_event = None
         self.photo_counter = load_counter()
@@ -159,7 +159,6 @@ class PhotoBoothScreen(Screen):
         # Counter erhöhen
         self.photo_counter += 1
         save_counter(self.photo_counter)
-        self.counter_label.text = f"Fotos gemacht: {self.photo_counter}"
 
         # QR-Code erstellen
         ip_addr = get_ip()
@@ -195,6 +194,17 @@ class QRScreen(Screen):
                                 pos_hint={'center_x':0.5, 'top':0.95})
         self.layout.add_widget(self.label_info)
 
+        # Zurück-Button
+        self.btn_back = Button(
+            text="← Zurück",
+            font_size=24,
+            size_hint=(0.2, 0.1),
+            pos_hint={'x': 0.05, 'y': 0.05},
+            background_color=(0.2, 0.2, 0.2, 0.8)
+        )
+        self.btn_back.bind(on_release=self.on_back_button)
+        self.layout.add_widget(self.btn_back)
+
         self.add_widget(self.layout)
 
         self.current_photo = None
@@ -213,6 +223,13 @@ class QRScreen(Screen):
         if self.auto_timer:
             Clock.unschedule(self.auto_timer)
         self.auto_timer = Clock.schedule_once(self.go_back, 30)
+
+    def on_back_button(self, instance):
+        # Timer stoppen falls aktiv
+        if self.auto_timer:
+            Clock.unschedule(self.auto_timer)
+            self.auto_timer = None
+        self.go_back()
 
     def go_back(self, *args):
         # Foto und QR löschen
