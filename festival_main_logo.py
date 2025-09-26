@@ -106,9 +106,14 @@ class CameraWidget(Image):
         # Overlay-Image für Preview
         overlay_path = os.path.join(os.path.dirname(__file__), "overlay.png")
         if os.path.exists(overlay_path):
-            self.overlay_widget = Image(source=overlay_path, allow_stretch=True, keep_ratio=False,
-                                       size_hint=(1, 0.18), pos_hint={'x': 0, 'y': 0})
-            # Overlay wird als Child hinzugefügt, damit es über dem Kamera-Feed liegt
+            # Overlay als schwebendes Logo unten rechts (20% Breite, 15% Höhe)
+            self.overlay_widget = Image(
+                source=overlay_path,
+                allow_stretch=True,
+                keep_ratio=True,
+                size_hint=(0.2, 0.15),
+                pos_hint={'right': 0.98, 'y': 0.02}
+            )
             self.add_widget(self.overlay_widget)
         else:
             self.overlay_widget = None
@@ -124,29 +129,31 @@ class CameraWidget(Image):
                 self.texture.flip_vertical()
             self.texture.blit_buffer(buf, colorfmt='rgb', bufferfmt='ubyte')
             self.canvas.ask_update()
-            # Overlay-Widget bleibt immer im Vordergrund
+            # Overlay-Widget bleibt immer im Vordergrund und an richtiger Stelle
             if self.overlay_widget:
-                self.overlay_widget.size = (self.width, self.height * 0.18)
-                self.overlay_widget.pos = (0, 0)
+                # Größe und Position werden durch size_hint und pos_hint automatisch gesetzt
+                pass
         except Exception as e:
             print(f"Kamera Update Fehler: {e}")
 
     def capture(self, path):
         # Normales Foto aufnehmen
         self.picam2.capture_file(path)
-        # Overlay ins Foto einfügen, falls vorhanden
+        # Overlay als schwebendes Logo unten rechts einfügen
         overlay_path = os.path.join(os.path.dirname(__file__), "overlay.png")
         if os.path.exists(overlay_path):
             try:
                 from PIL import Image as PILImage
                 base = PILImage.open(path).convert("RGBA")
                 overlay = PILImage.open(overlay_path).convert("RGBA")
-                # Overlay auf Breite des Fotos skalieren, Höhe proportional (unten)
-                ow = base.width
-                oh = int(base.height * 0.18)
+                # Zielgröße: 20% Breite, 15% Höhe des Fotos
+                ow = int(base.width * 0.2)
+                oh = int(base.height * 0.15)
                 overlay = overlay.resize((ow, oh), PILImage.LANCZOS)
-                # Overlay unten einfügen
-                base.paste(overlay, (0, base.height - oh), overlay)
+                # Position: 2% vom rechten und unteren Rand
+                x = int(base.width * 0.98) - ow
+                y = int(base.height * 0.02)
+                base.paste(overlay, (x, y), overlay)
                 base = base.convert("RGB")
                 base.save(path)
             except Exception as e:
