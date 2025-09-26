@@ -78,7 +78,7 @@ class CameraWidget(Image):
         except Exception:
             pass
         self.picam2.start()
-        Clock.schedule_interval(self.update, 1/30)
+        Clock.schedule_interval(self.update, 1/24)
 
     def update(self, dt):
         frame = self.picam2.capture_array()
