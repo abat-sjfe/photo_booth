@@ -106,13 +106,13 @@ class CameraWidget(Image):
         # Overlay-Image für Preview
         overlay_path = os.path.join(os.path.dirname(__file__), "overlay.png")
         if os.path.exists(overlay_path):
-            # Overlay als schwebendes Logo unten rechts (20% Breite, 15% Höhe)
+            # Overlay unten mittig (20% Breite, 15% Höhe)
             self.overlay_widget = Image(
                 source=overlay_path,
                 allow_stretch=True,
                 keep_ratio=True,
                 size_hint=(0.2, 0.15),
-                pos_hint={'right': 0.98, 'y': 0.02}
+                pos_hint={'center_x': 0.5, 'y': 0.02}
             )
             self.add_widget(self.overlay_widget)
         else:
@@ -139,7 +139,7 @@ class CameraWidget(Image):
     def capture(self, path):
         # Normales Foto aufnehmen
         self.picam2.capture_file(path)
-        # Overlay als schwebendes Logo unten rechts einfügen
+        # Overlay unten mittig einfügen
         overlay_path = os.path.join(os.path.dirname(__file__), "overlay.png")
         if os.path.exists(overlay_path):
             try:
@@ -150,8 +150,8 @@ class CameraWidget(Image):
                 ow = int(base.width * 0.2)
                 oh = int(base.height * 0.15)
                 overlay = overlay.resize((ow, oh), PILImage.LANCZOS)
-                # Position: 2% vom rechten und unteren Rand
-                x = int(base.width * 0.98) - ow
+                # Position: unten mittig
+                x = int((base.width - ow) / 2)
                 y = int(base.height * 0.02)
                 base.paste(overlay, (x, y), overlay)
                 base = base.convert("RGB")
