@@ -171,7 +171,7 @@ class PhotoBoothScreen(Screen):
         self.layout.add_widget(self.counter_label)
 
         self.btn_photo = RoundedButton(
-            text="📸 Foto",
+            text="Foto",
             font_size=32,
             size_hint=(0.25, 0.15),
             pos_hint={'x': 0.05, 'y': 0.05},
@@ -247,11 +247,11 @@ class QRScreen(Screen):
 
         # Zurück-Button
         self.btn_back = RoundedButton(
-            text="← Zurück",
-            font_size=24,
-            size_hint=(0.2, 0.1),
+            text="Zurück",
+            font_size=32,
+            size_hint=(0.25, 0.15),
             pos_hint={'x': 0.05, 'y': 0.05},
-            background_color=(0.2, 0.2, 0.2, 0.8)
+            background_color=(0, 0, 0, 0.5)
         )
         self.btn_back.bind(on_release=self.on_back_button)
         self.layout.add_widget(self.btn_back)
