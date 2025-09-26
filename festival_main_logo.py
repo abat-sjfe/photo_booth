@@ -103,20 +103,8 @@ class CameraWidget(Image):
         self.update_event = Clock.schedule_interval(self.update, 1/25.0)
         print("Kamera Live-Feed gestartet")
 
-        # Overlay-Image für Preview
-        overlay_path = os.path.join(os.path.dirname(__file__), "overlay.png")
-        if os.path.exists(overlay_path):
-            # Overlay unten mittig (20% Breite, 15% Höhe)
-            self.overlay_widget = Image(
-                source=overlay_path,
-                allow_stretch=True,
-                keep_ratio=True,
-                size_hint=(0.2, 0.15),
-                pos_hint={'center_x': 0.5, 'y': 0.05}  # y=0.05 bedeutet 5% vom UNTEREN Rand
-            )
-            self.add_widget(self.overlay_widget)
-        else:
-            self.overlay_widget = None
+        # Overlay wird jetzt im PhotoBoothScreen hinzugefügt, nicht hier
+        self.overlay_widget = None
 
     def update(self, dt):
         try:
@@ -172,6 +160,18 @@ class PhotoBoothScreen(Screen):
 
         self.camera = CameraWidget(allow_stretch=True, keep_ratio=False)
         self.layout.add_widget(self.camera)
+
+        # Overlay-Image für Preview - direkt im Screen positioniert
+        overlay_path = os.path.join(os.path.dirname(__file__), "overlay.png")
+        if os.path.exists(overlay_path):
+            self.overlay_widget = Image(
+                source=overlay_path,
+                allow_stretch=True,
+                keep_ratio=True,
+                size_hint=(0.2, 0.15),
+                pos_hint={'center_x': 0.5, 'y': 0.05}  # Unten mittig
+            )
+            self.layout.add_widget(self.overlay_widget)
 
         self.countdown_label = Label(text='', font_size=150,
                                      color=(1, 1, 1, 1),
