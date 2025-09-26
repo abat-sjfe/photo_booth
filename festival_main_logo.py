@@ -134,9 +134,9 @@ class CameraWidget(Image):
                 from PIL import Image as PILImage
                 base = PILImage.open(path).convert("RGBA")
                 overlay = PILImage.open(overlay_path).convert("RGBA")
-                # Zielgröße: 20% Breite, 15% Höhe des Fotos
-                ow = int(base.width * 0.2)
-                oh = int(base.height * 0.15)
+                # Kleinere Größe für bessere Übereinstimmung mit Preview: 15% Breite, 10% Höhe
+                ow = int(base.width * 0.15)
+                oh = int(base.height * 0.10)
                 overlay = overlay.resize((ow, oh), PILImage.LANCZOS)
                 # Position: unten mittig (PIL zählt Y von oben!)
                 x = int((base.width - ow) / 2)      # Horizontal zentriert
@@ -168,7 +168,7 @@ class PhotoBoothScreen(Screen):
                 source=overlay_path,
                 allow_stretch=True,
                 keep_ratio=True,
-                size_hint=(0.2, 0.15),
+                size_hint=(0.15, 0.10),  # Angepasst an Foto-Größe
                 pos_hint={'center_x': 0.5, 'y': 0.05}  # Unten mittig
             )
             self.layout.add_widget(self.overlay_widget)
